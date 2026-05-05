@@ -1,0 +1,5 @@
+### [F] Functional — healthcheck
+GET http://localhost:3000/
+
+### [O] OOP — healthcheck
+GET http://localhost:3001/

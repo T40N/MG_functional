@@ -1,4 +1,4 @@
-import express, {Request, Response} from 'express';
+import express, { Request, Response } from 'express';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
@@ -11,6 +11,10 @@ import { ApiResponse } from './common/utils/ApiResponse';
 export function buildApp(pool: Pool): express.Application {
   const app = express();
   app.use(express.json());
+
+  app.get('/', (_req: Request, res: Response) => {
+    res.send('OOP app is running.');
+  });
 
   const jwtSecret = process.env.JWT_SECRET ?? 'dev-secret';
 

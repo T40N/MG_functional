@@ -1,9 +1,13 @@
 # Dependency directories
 node_modules/
+apps/*/node_modules/
+package-lock.json
+apps/*/package-lock.json
 
 # Build outputs
 dist/
 build/
+apps/*/dist/
 *.tsbuildinfo
 
 # Logs

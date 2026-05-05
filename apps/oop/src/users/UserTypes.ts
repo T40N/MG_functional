@@ -4,7 +4,7 @@ export type DbUser = {
   surname: string;
   email: string;
   password: string;
-  created_at: Date;
+  createdAt: Date;
 };
 
 export type PublicUser = Omit<DbUser, 'password'>;

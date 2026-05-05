@@ -7,7 +7,7 @@ const dbUser: DbUser = {
   surname: 'Doe',
   email: 'jane@example.com',
   password: 'hashed',
-  created_at: new Date(),
+  createdAt: new Date(),
 };
 
 const mockUserRepository = {
