@@ -14,12 +14,17 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     volumes:
       - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   app-functional:
     image: node:18
     container_name: mg_functional
     working_dir: /app
-    command: bash -c "npm install && npm run dev"
+    command: bash -c "npm install && npm run dev:docker"
     volumes:
       - ./apps/functional:/app
       - /app/node_modules
@@ -31,22 +36,41 @@ services:
     environment:
       MIGRATIONS_DIR: /database/migrations
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    restart: on-failure
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:3000/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
   # app-oop:
   #   image: node:18
   #   container_name: mg_oop
   #   working_dir: /app
-  #   command: bash -c "npm install && npm run dev"
+  #   command: bash -c "npm install && npm run dev:docker"
   #   volumes:
   #     - ./apps/oop:/app
   #     - /app/node_modules
+  #     - ./database:/database
   #   ports:
   #     - "3001:3001"
   #   env_file:
   #     - ./apps/oop/.env
+  #   environment:
+  #     MIGRATIONS_DIR: /database/migrations
   #   depends_on:
-  #     - postgres
+  #     postgres:
+  #       condition: service_healthy
+  #   restart: on-failure
+  #   healthcheck:
+  #     test: ["CMD-SHELL", "curl -sf http://localhost:3001/ || exit 1"]
+  #     interval: 10s
+  #     timeout: 3s
+  #     retries: 3
+  #     start_period: 30s
 
 volumes:
   pgdata:
