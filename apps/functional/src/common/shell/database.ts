@@ -110,37 +110,28 @@ export const initializeDb = (env: NodeJS.ProcessEnv): TE.TaskEither<Error, Pool>
     ),
   );
 
-export const runMigrations = (pool: Pool, migrationsDir: string): TE.TaskEither<Error, unknown[]> =>
+export const runMigrations = (pool: Pool, migrationsDir: string): TE.TaskEither<Error, void> =>
   TE.tryCatch(
     async () => {
+      await pool.query(`
+        CREATE TABLE IF NOT EXISTS migrations (
+          name TEXT PRIMARY KEY,
+          run_at TIMESTAMP DEFAULT now()
+        )
+      `);
+
       const files = await fs.promises.readdir(migrationsDir);
+      const sqlFiles = files.filter(f => f.endsWith('.sql')).sort();
 
-      // Filter for .sql files and sort them
-      const sqlFiles = files
-        .filter(file => file.endsWith('.sql'))
-        .sort();
+      for (const file of sqlFiles) {
+        const { rows } = await pool.query('SELECT 1 FROM migrations WHERE name = $1', [file]);
+        if (rows.length > 0) continue;
 
-      // Execute each migration concurrently and collect results
-      return await Promise.all(
-        sqlFiles.map(async (file) => {
-          const filePath = path.join(migrationsDir, file);
-          const sql = await fs.promises.readFile(filePath, 'utf8');
-          const result = await executeQueryWithPool(pool, sql)();
-
-          return pipe(
-            result,
-            E.fold(
-              (error) => {
-                throw new Error(`Migration ${file} failed: ${error.message}`);
-              },
-              (res) => {
-                console.log(`Migration ${file} executed successfully`);
-                return res;
-              },
-            ),
-          );
-        }),
-      );
+        const sql = await fs.promises.readFile(path.join(migrationsDir, file), 'utf8');
+        await pool.query(sql);
+        await pool.query('INSERT INTO migrations (name) VALUES ($1)', [file]);
+        console.log(`Migration ${file} executed successfully`);
+      }
     },
     (reason) => new Error(`Failed to run migrations: ${reason}`),
   );

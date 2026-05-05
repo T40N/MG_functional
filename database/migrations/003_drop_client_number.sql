@@ -1,1 +1,1 @@
-ALTER TABLE users DROP COLUMN IF EXISTS client_number;
+ALTER TABLE users DROP COLUMN IF EXISTS client_number CASCADE;

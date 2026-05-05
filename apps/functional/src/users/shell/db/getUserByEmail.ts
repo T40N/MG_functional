@@ -12,7 +12,6 @@ export const getUserByEmail = (pool: Pool, email: string) =>
               name,
               surname,
               email,
-              client_number,
               password,
               created_at as "createdAt"
        FROM users

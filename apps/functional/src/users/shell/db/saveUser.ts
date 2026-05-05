@@ -14,7 +14,6 @@ export const saveUser = (pool: Pool, userToSave: TUserToSave) =>
                  name,
                  surname,
                  email,
-                 client_number,
                  password,
                  created_at as "createdAt"`,
       [
