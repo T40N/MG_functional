@@ -2,7 +2,7 @@
 
 ## Kontekst
 Aplikacja jest częścią pracy magisterskiej porównującej podejście funkcyjne (fp-ts) z OOP.
-Repo: monorepo, projekt funkcyjny w `apps/functional/`.
+Repo: monorepo — `apps/functional/` (port 3000), `apps/oop/` (port 3001).
 Domena: **sklep internetowy**.
 
 ---
@@ -10,13 +10,11 @@ Domena: **sklep internetowy**.
 ## Schemat bazy danych (docelowy)
 
 ```sql
--- UWAGA: usunąć client_number z users (nie pasuje do e-commerce)
--- Migracja 003 powinna DROP COLUMN client_number
-
 -- categories
 CREATE TABLE IF NOT EXISTS categories (
   id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL UNIQUE,
+  name VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
   created_at TIMESTAMP DEFAULT now()
 );
 
@@ -62,7 +60,7 @@ CREATE TABLE IF NOT EXISTS order_items (
   order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
   product_id INTEGER REFERENCES products(id),
   quantity INTEGER NOT NULL,
-  price_at_purchase NUMERIC(10,2) NOT NULL  -- cena utrwalona w momencie zakupu
+  price_at_purchase NUMERIC(10,2) NOT NULL
 );
 ```
 
@@ -72,9 +70,12 @@ CREATE TABLE IF NOT EXISTS order_items (
 
 | Metoda | Ścieżka | Auth JWT | Opis |
 |--------|---------|----------|------|
-| POST | `/api/users/register` | nie | Rejestracja ✅ działa |
-| POST | `/api/auth/login` | nie | Login ✅ działa (do naprawy: brak tokenu) |
+| GET | `/` | nie | Healthcheck ✅ oba apps |
+| POST | `/api/users/register` | nie | Rejestracja ✅ |
+| POST | `/api/auth/login` | nie | Login ✅ (zwraca token) |
+| GET | `/api/me` | TAK | Weryfikacja JWT ✅ |
 | GET | `/api/categories` | nie | Lista kategorii |
+| POST | `/api/categories` | TAK | Dodaj kategorię (chroniony) |
 | GET | `/api/products` | nie | Lista produktów (filtr: category_id, search, page, limit) |
 | GET | `/api/products/:id` | nie | Szczegóły produktu |
 | GET | `/api/cart` | TAK | Koszyk zalogowanego użytkownika |
@@ -82,97 +83,90 @@ CREATE TABLE IF NOT EXISTS order_items (
 | PUT | `/api/cart/items/:productId` | TAK | Zmień ilość produktu w koszyku |
 | DELETE | `/api/cart/items/:productId` | TAK | Usuń produkt z koszyka |
 | DELETE | `/api/cart` | TAK | Wyczyść koszyk |
-| POST | `/api/orders` | TAK | **Złóż zamówienie** (główna logika biznesowa) |
+| POST | `/api/orders` | TAK | Złóż zamówienie |
 | GET | `/api/orders` | TAK | Historia zamówień użytkownika |
 | GET | `/api/orders/:id` | TAK | Szczegóły zamówienia |
-| PATCH | `/api/orders/:id/cancel` | TAK | Anuluj zamówienie (przywraca stany) |
+| PATCH | `/api/orders/:id/cancel` | TAK | Anuluj zamówienie |
 
 ---
 
 ## Kolejność implementacji
 
-### FAZA 0 — Naprawa bugów (zrobić PIERWSZE)
-- [ ] Odkomentować/naprawić migrację `002_client_number_seq.sql` LUB napisać migrację `003` usuwającą `client_number` z tabeli users i zmieniającą schemat
-- [ ] Dodać zwrot JWT tokenu w `loginUser` — dodać `createToken` do `TLoginEnv` i `TLoginResult`
-- [ ] Usunąć martwy kod: `TCreateUserEffect.ts`, oczyścić `eventBus.ts`
+### ✅ FAZA 0 — Naprawa bugów
+- ✅ Migracja 003 — DROP COLUMN client_number CASCADE
+- ✅ Login zwraca JWT token (createToken w TLoginEnv + TLoginResult)
+- ✅ Usunięty martwy kod: TCreateUserEffect.ts, eventBus.ts, stare migracje w apps/
 
-### FAZA 1 — Middleware JWT
-- [ ] `src/common/shell/middleware/authMiddleware.ts` — weryfikacja tokenu z nagłówka `Authorization: Bearer <token>`
-- [ ] Wyciągnąć `userId` z tokenu i dołączyć do `req` (rozszerzenie typu Express Request)
-- [ ] Testy: chroniony endpoint bez tokenu → 401, z tokenem → działa
+### ✅ FAZA 1 — Middleware JWT (oba apps)
+- ✅ `authMiddleware.ts` w functional i OOP
+- ✅ GET /api/me — chroniony endpoint testowy
+- ✅ Rozszerzenie Express Request o `userId`
 
-### FAZA 2 — Kategorie
-- [ ] Migracja SQL: tabela `categories`
-- [ ] `src/categories/` — analogiczna struktura do `src/users/` (core/shell)
-- [ ] GET `/api/categories` — lista (publiczny)
-- [ ] (opcjonalnie) POST `/api/categories` — tworzenie (chroniony)
+### ✅ OOP bootstrap
+- ✅ UserRepository, UserService, UserController
+- ✅ GET / healthcheck route (potrzebny do Docker healthcheck)
+- ✅ Docker: mg_functional (3000) + mg_oop (3001) — oba healthy
+
+### FAZA 2 — Kategorie (NASTĘPNA)
+Implementować TDD: najpierw testy (Red), potem kod (Green), w obu apps jednocześnie.
+
+**Functional** (`apps/functional/src/categories/`):
+- migration: `database/migrations/004_create_categories.sql`
+- `core/types/`: TDbCategory, TGetCategoriesTypes, TCreateCategoryTypes, index.ts
+- `core/usecases/`: getCategories.ts, createCategory.ts
+- `shell/db/`: getAllCategories.ts, getCategoryByName.ts, saveCategory.ts
+- `shell/routes/`: getCategories.ts, createCategory.ts (z authMiddleware)
+- `shell/validation/`: createCategoryValidation.ts
+- Dodać alias `@categories/*` do tsconfig.json i jest.config.js
+- Zarejestrować routes w server.ts
+
+**OOP** (`apps/oop/src/categories/`):
+- CategoryTypes.ts, CategoryRepository.ts, CategoryService.ts, CategoryController.ts
+- validators/categoryValidators.ts
+- Dodać alias `@categories/*` do tsconfig.json i jest.config.js
+- Zarejestrować CategoryController w app.ts
+
+**Tests**:
+- Functional: `__tests__/categories/getCategories.usecase.test.ts`, `createCategory.usecase.test.ts`, `getCategories.test.ts`, `createCategory.test.ts`
+- OOP: `__tests__/categories/categoryService.test.ts`, `categories.route.test.ts`
+
+**HTTP file**: `requests/categories.http` ([F] i [O])
 
 ### FAZA 3 — Produkty
-- [ ] Migracja SQL: tabela `products`
-- [ ] `src/products/` — core/shell
-- [ ] GET `/api/products` — lista z filtrowaniem (category_id, search, page, limit)
-- [ ] GET `/api/products/:id` — szczegóły
-- [ ] (opcjonalnie) POST/PUT `/api/products` — CRUD (chroniony)
+- Migration: `005_create_products.sql`
+- `src/products/` w obu apps
+- GET /api/products (filtrowanie: category_id, search, page, limit)
+- GET /api/products/:id
+- POST /api/products (chroniony — opcjonalnie)
 
 ### FAZA 4 — Koszyk
-- [ ] Migracja SQL: tabele `carts` + `cart_items`
-- [ ] `src/cart/` — core/shell
-- [ ] GET `/api/cart` — pobierz koszyk (tworzy jeśli nie istnieje)
-- [ ] POST `/api/cart/items` — dodaj (walidacja: produkt istnieje, stock > 0)
-- [ ] PUT `/api/cart/items/:productId` — zmień ilość (walidacja: stock)
-- [ ] DELETE `/api/cart/items/:productId` — usuń pozycję
-- [ ] DELETE `/api/cart` — wyczyść koszyk
+- Migrations: `006_create_carts.sql`, `007_create_cart_items.sql`
+- `src/cart/` w obu apps
+- Pełne CRUD koszykowe
 
 ### FAZA 5 — Zamówienia (główna logika)
-- [ ] Migracja SQL: tabele `orders` + `order_items`
-- [ ] `src/orders/` — core/shell
-- [ ] **`placeOrder` use case** — kluczowa logika:
-  ```
-  getCart → walidacja (niepusty) → sprawdź stock każdego produktu
-  → oblicz total → utwórz order → utwórz order_items (z price_at_purchase)
-  → zmniejsz stock → wyczyść koszyk
-  ```
-- [ ] GET `/api/orders` — historia
-- [ ] GET `/api/orders/:id` — szczegóły
-- [ ] PATCH `/api/orders/:id/cancel` — anulowanie (przywraca stock, zmienia status)
-
----
-
-## Struktura modułów (wzorzec do stosowania)
-
-Każda nowa funkcjonalność powinna mieć strukturę analogiczną do `src/users/`:
-
-```
-src/<feature>/
-  core/
-    usecases/       ← czyste funkcje ReaderTaskEither
-    types/
-      index.ts      ← re-export wszystkich typów
-      common/       ← TDb<Entity>, TPublic<Entity>, TEntityToSave
-      create<Entity>/  ← TCreate<Entity>Input, TCreate<Entity>Env, TCreate<Entity>Result
-  shell/
-    routes/         ← Express handler + rejestracja
-    db/             ← zapytania SQL (executeQueryWithPool)
-    validation/     ← Zod schema + validate()
-    dtos/           ← typy DTO (deklaracje)
-    factories/      ← DTO → domain input
-```
+- Migrations: `008_create_orders.sql`, `009_create_order_items.sql`
+- `src/orders/` w obu apps
+- **`placeOrder` use case** — atomowe, w transakcji PostgreSQL:
+  `getCart → walidacja → sprawdź stock → oblicz total → utwórz order + items → zmniejsz stock → wyczyść koszyk`
 
 ---
 
 ## Ważne decyzje architektoniczne
 
-- **`price_at_purchase`** w `order_items` — cena musi być zapamiętana z momentu zakupu, zmiana ceny produktu nie może wpływać na historyczne zamówienia
-- **Koszyk 1:1 z userem** — jeden aktywny koszyk per user, tworzony przy pierwszym dodaniu produktu
-- **`placeOrder` jest atomowe** — jeśli cokolwiek się nie powiedzie (np. brak stocku dla jednego produktu), cała operacja cofa się. W FP: `TaskEither` chain — błąd na dowolnym etapie przerywa resztę. DB: wszystko w jednej transakcji PostgreSQL.
+- **`price_at_purchase`** — cena zapamiętana w momencie zakupu
+- **Koszyk 1:1 z userem** — tworzony przy pierwszym dodaniu produktu
+- **`placeOrder` jest atomowe** — błąd cofa całą operację; DB: jedna transakcja PostgreSQL
 - **Status zamówienia**: `pending → confirmed → shipped → delivered` lub `pending → cancelled`
+- **API response shape**: `{ success: true, data: T, message: string }` / `{ success: false, error: { type, details }, message: string }`
+- **TDD workflow**: Red (testy w obu apps) → Green (implementacja) → lint → commit → .http file → podsumowanie fazy
 
 ---
 
-## Stan na koniec tej sesji
+## Stan na koniec sesji 2026-05-05
 
-- ✅ Monorepo skonfigurowane (`apps/functional/`, `apps/oop/` placeholder)
-- ✅ npm workspaces działa, wszystkie testy przechodzą (25/25)
-- ✅ Plan e-commerce zapisany
-- ❌ Bugi jeszcze nienaprawione (faza 0)
-- ❌ Nowe funkcjonalności niezaczęte
+- ✅ Monorepo skonfigurowane, oba apps w Docker (healthy)
+- ✅ Faza 0 + 1 + OOP bootstrap ukończone, wszystkie testy przechodzą
+- ✅ Shared migrations w `database/migrations/` (z tracking table)
+- ✅ `requests/`: health.http, users.http, me.http
+- ❌ Fazy 2-5 niezaczęte
