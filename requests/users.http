@@ -1,0 +1,84 @@
+### Variables
+@baseUrlFunctional = http://localhost:3000
+@baseUrlOop = http://localhost:3001
+@contentType = application/json
+
+### ─── FUNCTIONAL ────────────────────────────────────────────────
+
+### [F] Register user
+POST {{baseUrlFunctional}}/api/users/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Jan",
+  "surname": "Kowalski",
+  "email": "jan@example.com",
+  "password": "Password1",
+  "confirm_password": "Password1"
+}
+
+### [F] Register — validation error (missing fields)
+POST {{baseUrlFunctional}}/api/users/register
+Content-Type: {{contentType}}
+
+{
+  "email": "bad"
+}
+
+### [F] Login
+POST {{baseUrlFunctional}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "jan@example.com",
+  "password": "Password1"
+}
+
+### [F] Login — invalid credentials
+POST {{baseUrlFunctional}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "jan@example.com",
+  "password": "WrongPassword1"
+}
+
+### ─── OOP ────────────────────────────────────────────────────────
+
+### [O] Register user
+POST {{baseUrlOop}}/api/users/register
+Content-Type: {{contentType}}
+
+{
+  "name": "Jan",
+  "surname": "Kowalski",
+  "email": "jan@example.com",
+  "password": "Password1",
+  "confirm_password": "Password1"
+}
+
+### [O] Register — validation error (missing fields)
+POST {{baseUrlOop}}/api/users/register
+Content-Type: {{contentType}}
+
+{
+  "email": "bad"
+}
+
+### [O] Login
+POST {{baseUrlOop}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "jan@example.com",
+  "password": "Password1"
+}
+
+### [O] Login — invalid credentials
+POST {{baseUrlOop}}/api/auth/login
+Content-Type: {{contentType}}
+
+{
+  "email": "jan@example.com",
+  "password": "WrongPassword1"
+}

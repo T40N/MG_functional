@@ -1,0 +1,52 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: my_postgres
+    ports:
+      - "5432:5432"
+    env_file:
+      - ./apps/functional/.env
+    environment:
+      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  app-functional:
+    image: node:18
+    container_name: mg_functional
+    working_dir: /app
+    command: bash -c "npm install && npm run dev"
+    volumes:
+      - ./apps/functional:/app
+      - /app/node_modules
+      - ./database:/database
+    ports:
+      - "${PORT:-3000}:${PORT:-3000}"
+    env_file:
+      - ./apps/functional/.env
+    environment:
+      MIGRATIONS_DIR: /database/migrations
+    depends_on:
+      - postgres
+
+  # app-oop:
+  #   image: node:18
+  #   container_name: mg_oop
+  #   working_dir: /app
+  #   command: bash -c "npm install && npm run dev"
+  #   volumes:
+  #     - ./apps/oop:/app
+  #     - /app/node_modules
+  #   ports:
+  #     - "3001:3001"
+  #   env_file:
+  #     - ./apps/oop/.env
+  #   depends_on:
+  #     - postgres
+
+volumes:
+  pgdata:
