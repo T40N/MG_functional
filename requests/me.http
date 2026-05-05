@@ -1,0 +1,31 @@
+### Variables
+@baseUrlFunctional = http://localhost:3000
+@baseUrlOop = http://localhost:3001
+# Paste token from login response below:
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyIiwiZW1haWwiOiJqYW5AZXhhbXBsZS5jb20iLCJpYXQiOjE3Nzc5ODg1MTMsImV4cCI6MTc3Nzk5MjExM30.6XqHx9wLXDeY2DF9M3DRJwYKC9ezv7z6wR2g9EGfSX8
+
+### ─── FUNCTIONAL ────────────────────────────────────────────────
+
+### [F] GET /api/me — z tokenem (200)
+GET {{baseUrlFunctional}}/api/me
+Authorization: Bearer {{token}}
+
+### [F] GET /api/me — bez tokenu (401)
+GET {{baseUrlFunctional}}/api/me
+
+### [F] GET /api/me — zły token (401)
+GET {{baseUrlFunctional}}/api/me
+Authorization: Bearer bad-token
+
+### ─── OOP ────────────────────────────────────────────────────────
+
+### [O] GET /api/me — z tokenem (200)
+GET {{baseUrlOop}}/api/me
+Authorization: Bearer {{token}}
+
+### [O] GET /api/me — bez tokenu (401)
+GET {{baseUrlOop}}/api/me
+
+### [O] GET /api/me — zły token (401)
+GET {{baseUrlOop}}/api/me
+Authorization: Bearer bad-token

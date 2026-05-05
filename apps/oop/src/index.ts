@@ -2,6 +2,12 @@ import path from 'path';
 import { createPool, runMigrations } from './common/database/Database';
 import { buildApp } from './app';
 
+declare module 'express-serve-static-core' {
+  interface Request {
+    userId?: string;
+  }
+}
+
 const getMigrationsDir = (): string =>
   process.env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), '../../database/migrations');
 

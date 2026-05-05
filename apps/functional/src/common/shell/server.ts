@@ -5,10 +5,12 @@ import * as O from 'fp-ts/Option';
 import * as E from 'fp-ts/Either';
 import * as TE from 'fp-ts/TaskEither';
 import { getWelcomeMessage, formatMessage } from '../core/usecases/get_messages';
+import { createResponse } from '../core/usecases/createResponse';
 import { Pool } from 'pg';
 import { initializeDb, runMigrations } from './database';
 import { registerUserRoutes } from '@users/shell/routes/registerUser';
 import { registerLoginRoutes } from '@users/shell/routes/loginUser';
+import { authMiddleware } from './middleware/authMiddleware';
 
 const getMigrationsDir = (env: NodeJS.ProcessEnv): string =>
   env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), '../../database/migrations');
@@ -46,6 +48,11 @@ export const createApp = () => {
   // Register user routes
   registerUserRoutes(app);
   registerLoginRoutes(app);
+
+  // Protected test route — verifies JWT middleware works
+  app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
+    res.json(createResponse('success', {userId: req.userId}, 'Authenticated'));
+  });
 
   // Example route that demonstrates database query execution
   app.get('/db-query', (req: Request, res: Response) => {

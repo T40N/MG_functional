@@ -1,10 +1,12 @@
-import express from 'express';
+import express, {Request, Response} from 'express';
 import { Pool } from 'pg';
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
 import { UserRepository } from './users/UserRepository';
 import { UserService } from './users/UserService';
 import { UserController } from './users/UserController';
+import { authMiddleware } from './common/middleware/authMiddleware';
+import { ApiResponse } from './common/utils/ApiResponse';
 
 export function buildApp(pool: Pool): express.Application {
   const app = express();
@@ -26,6 +28,11 @@ export function buildApp(pool: Pool): express.Application {
   const userController = new UserController(userService);
 
   app.use(userController.router);
+
+  // Protected test route — verifies JWT middleware works
+  app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
+    res.json(ApiResponse.success({userId: req.userId}, 'Authenticated'));
+  });
 
   return app;
 }

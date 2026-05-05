@@ -8,6 +8,9 @@ declare module 'express-serve-static-core' {
   interface Application {
     dbPool?: Pool;
   }
+  interface Request {
+    userId?: string;
+  }
 }
 
 // Create the Express application
