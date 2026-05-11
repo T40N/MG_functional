@@ -16,6 +16,10 @@ import { registerCreateCategoryRoute } from '@categories/shell/routes/createCate
 import { registerGetProductsRoute } from '@products/shell/routes/getProducts';
 import { registerGetProductByIdRoute } from '@products/shell/routes/getProductById';
 import { registerCreateProductRoute } from '@products/shell/routes/createProduct';
+import { registerPlaceOrderRoute } from '@orders/shell/routes/placeOrder';
+import { registerGetOrdersRoute } from '@orders/shell/routes/getOrders';
+import { registerGetOrderByIdRoute } from '@orders/shell/routes/getOrderById';
+import { registerCancelOrderRoute } from '@orders/shell/routes/cancelOrder';
 import { registerGetCartRoute } from '@cart/shell/routes/getCart';
 import { registerAddToCartRoute } from '@cart/shell/routes/addToCart';
 import { registerUpdateCartItemRoute } from '@cart/shell/routes/updateCartItem';
@@ -67,6 +71,12 @@ export const createApp = () => {
   registerGetProductsRoute(app);
   registerGetProductByIdRoute(app);
   registerCreateProductRoute(app);
+
+  // Register order routes
+  registerPlaceOrderRoute(app);
+  registerGetOrdersRoute(app);
+  registerGetOrderByIdRoute(app);
+  registerCancelOrderRoute(app);
 
   // Register cart routes
   registerGetCartRoute(app);

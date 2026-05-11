@@ -12,5 +12,6 @@ module.exports = {
     '^@categories/(.*)$': '<rootDir>/src/categories/$1',
     '^@products/(.*)$': '<rootDir>/src/products/$1',
     '^@cart/(.*)$': '<rootDir>/src/cart/$1',
+    '^@orders/(.*)$': '<rootDir>/src/orders/$1',
   },
 };

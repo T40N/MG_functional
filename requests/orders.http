@@ -1,0 +1,35 @@
+@base = http://localhost:3000
+@base_oop = http://localhost:3001
+@token = PASTE_JWT_TOKEN_HERE
+
+### Place order (functional)
+POST {{base}}/api/orders
+Authorization: Bearer {{token}}
+
+### Place order (OOP)
+POST {{base_oop}}/api/orders
+Authorization: Bearer {{token}}
+
+### Get all orders (functional)
+GET {{base}}/api/orders
+Authorization: Bearer {{token}}
+
+### Get all orders (OOP)
+GET {{base_oop}}/api/orders
+Authorization: Bearer {{token}}
+
+### Get order by ID (functional)
+GET {{base}}/api/orders/1
+Authorization: Bearer {{token}}
+
+### Get order by ID (OOP)
+GET {{base_oop}}/api/orders/1
+Authorization: Bearer {{token}}
+
+### Cancel order (functional)
+PATCH {{base}}/api/orders/1/cancel
+Authorization: Bearer {{token}}
+
+### Cancel order (OOP)
+PATCH {{base_oop}}/api/orders/1/cancel
+Authorization: Bearer {{token}}

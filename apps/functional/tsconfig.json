@@ -10,7 +10,8 @@
       "@users/*": ["users/*"],
       "@categories/*": ["categories/*"],
       "@products/*": ["products/*"],
-      "@cart/*": ["cart/*"]
+      "@cart/*": ["cart/*"],
+      "@orders/*": ["orders/*"]
     },
     "strict": true,
     "esModuleInterop": true,
