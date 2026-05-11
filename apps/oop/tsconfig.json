@@ -9,7 +9,8 @@
       "@common/*": ["common/*"],
       "@users/*": ["users/*"],
       "@categories/*": ["categories/*"],
-      "@products/*": ["products/*"]
+      "@products/*": ["products/*"],
+      "@cart/*": ["cart/*"]
     },
     "strict": true,
     "esModuleInterop": true,

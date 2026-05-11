@@ -11,6 +11,9 @@ import { CategoryController } from './categories/CategoryController';
 import { ProductRepository } from './products/ProductRepository';
 import { ProductService } from './products/ProductService';
 import { ProductController } from './products/ProductController';
+import { CartRepository } from './cart/CartRepository';
+import { CartService } from './cart/CartService';
+import { CartController } from './cart/CartController';
 import { authMiddleware } from './common/middleware/authMiddleware';
 import { ApiResponse } from './common/utils/ApiResponse';
 
@@ -45,9 +48,14 @@ export function buildApp(pool: Pool): express.Application {
   const productService = new ProductService(productRepository);
   const productController = new ProductController(productService);
 
+  const cartRepository = new CartRepository(pool);
+  const cartService = new CartService(cartRepository);
+  const cartController = new CartController(cartService);
+
   app.use(userController.router);
   app.use(categoryController.router);
   app.use(productController.router);
+  app.use(cartController.router);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {

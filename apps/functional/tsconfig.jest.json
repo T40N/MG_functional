@@ -6,7 +6,8 @@
       "@common/*": ["src/common/*"],
       "@users/*": ["src/users/*"],
       "@categories/*": ["src/categories/*"],
-      "@products/*": ["src/products/*"]
+      "@products/*": ["src/products/*"],
+      "@cart/*": ["src/cart/*"]
     }
   }
 }

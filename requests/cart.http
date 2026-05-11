@@ -1,0 +1,79 @@
+### GET /api/cart — functional (port 3000)
+GET http://localhost:3000/api/cart
+Authorization: Bearer {{token}}
+
+###
+
+### GET /api/cart — OOP (port 3001)
+GET http://localhost:3001/api/cart
+Authorization: Bearer {{token}}
+
+###
+
+### POST /api/cart/items — functional (rezerwuje stock na 15 min)
+POST http://localhost:3000/api/cart/items
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": 1,
+  "quantity": 2
+}
+
+###
+
+### POST /api/cart/items — OOP
+POST http://localhost:3001/api/cart/items
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "productId": 1,
+  "quantity": 2
+}
+
+###
+
+### PUT /api/cart/items/:productId — zmień ilość (functional)
+PUT http://localhost:3000/api/cart/items/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quantity": 5
+}
+
+###
+
+### PUT /api/cart/items/:productId — zmień ilość (OOP)
+PUT http://localhost:3001/api/cart/items/1
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "quantity": 5
+}
+
+###
+
+### DELETE /api/cart/items/:productId — usuń produkt (functional)
+DELETE http://localhost:3000/api/cart/items/1
+Authorization: Bearer {{token}}
+
+###
+
+### DELETE /api/cart/items/:productId — usuń produkt (OOP)
+DELETE http://localhost:3001/api/cart/items/1
+Authorization: Bearer {{token}}
+
+###
+
+### DELETE /api/cart — wyczyść koszyk (functional)
+DELETE http://localhost:3000/api/cart
+Authorization: Bearer {{token}}
+
+###
+
+### DELETE /api/cart — wyczyść koszyk (OOP)
+DELETE http://localhost:3001/api/cart
+Authorization: Bearer {{token}}

@@ -16,6 +16,11 @@ import { registerCreateCategoryRoute } from '@categories/shell/routes/createCate
 import { registerGetProductsRoute } from '@products/shell/routes/getProducts';
 import { registerGetProductByIdRoute } from '@products/shell/routes/getProductById';
 import { registerCreateProductRoute } from '@products/shell/routes/createProduct';
+import { registerGetCartRoute } from '@cart/shell/routes/getCart';
+import { registerAddToCartRoute } from '@cart/shell/routes/addToCart';
+import { registerUpdateCartItemRoute } from '@cart/shell/routes/updateCartItem';
+import { registerRemoveCartItemRoute } from '@cart/shell/routes/removeCartItem';
+import { registerClearCartRoute } from '@cart/shell/routes/clearCart';
 
 const getMigrationsDir = (env: NodeJS.ProcessEnv): string =>
   env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), '../../database/migrations');
@@ -62,6 +67,13 @@ export const createApp = () => {
   registerGetProductsRoute(app);
   registerGetProductByIdRoute(app);
   registerCreateProductRoute(app);
+
+  // Register cart routes
+  registerGetCartRoute(app);
+  registerAddToCartRoute(app);
+  registerUpdateCartItemRoute(app);
+  registerRemoveCartItemRoute(app);
+  registerClearCartRoute(app);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
