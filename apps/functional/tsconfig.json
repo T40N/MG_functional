@@ -8,7 +8,8 @@
     "paths": {
       "@common/*": ["common/*"],
       "@users/*": ["users/*"],
-      "@categories/*": ["categories/*"]
+      "@categories/*": ["categories/*"],
+      "@products/*": ["products/*"]
     },
     "strict": true,
     "esModuleInterop": true,

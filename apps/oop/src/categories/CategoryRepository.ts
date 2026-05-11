@@ -6,14 +6,14 @@ export class CategoryRepository {
 
   async findAll(): Promise<DbCategory[]> {
     const {rows} = await this.pool.query<DbCategory>(
-      `SELECT id, name, description, created_at as "createdAt" FROM categories ORDER BY name ASC`,
+      'SELECT id, name, description, created_at as "createdAt" FROM categories ORDER BY name ASC',
     );
     return rows;
   }
 
   async findByName(name: string): Promise<DbCategory | null> {
     const {rows} = await this.pool.query<DbCategory>(
-      `SELECT id, name, description, created_at as "createdAt" FROM categories WHERE name = $1 LIMIT 1`,
+      'SELECT id, name, description, created_at as "createdAt" FROM categories WHERE name = $1 LIMIT 1',
       [name],
     );
     return rows[0] ?? null;

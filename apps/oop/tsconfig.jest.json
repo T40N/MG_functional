@@ -5,7 +5,8 @@
     "paths": {
       "@common/*": ["src/common/*"],
       "@users/*": ["src/users/*"],
-      "@categories/*": ["src/categories/*"]
+      "@categories/*": ["src/categories/*"],
+      "@products/*": ["src/products/*"]
     }
   }
 }

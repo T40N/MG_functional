@@ -12,6 +12,7 @@ module.exports = {
     '^@common/(.*)$': '<rootDir>/src/common/$1',
     '^@users/(.*)$': '<rootDir>/src/users/$1',
     '^@categories/(.*)$': '<rootDir>/src/categories/$1',
+    '^@products/(.*)$': '<rootDir>/src/products/$1',
   },
   transform: {
     '^.+\\.ts$': 'ts-jest',

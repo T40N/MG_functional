@@ -1,0 +1,70 @@
+### GET /api/products — functional (port 3000)
+GET http://localhost:3000/api/products
+
+###
+
+### GET /api/products z filtrami — functional
+GET http://localhost:3000/api/products?category_id=1&search=laptop&page=1&limit=10
+
+###
+
+### GET /api/products — OOP (port 3001)
+GET http://localhost:3001/api/products
+
+###
+
+### GET /api/products z filtrami — OOP
+GET http://localhost:3001/api/products?category_id=1&search=laptop&page=1&limit=10
+
+###
+
+### GET /api/products/:id — functional
+GET http://localhost:3000/api/products/1
+
+###
+
+### GET /api/products/:id — OOP
+GET http://localhost:3001/api/products/1
+
+###
+
+### POST /api/products — functional (wymaga JWT)
+POST http://localhost:3000/api/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Laptop Pro",
+  "description": "High-performance laptop",
+  "price": 1299.99,
+  "stock": 50,
+  "categoryId": 1
+}
+
+###
+
+### POST /api/products bez kategorii — functional
+POST http://localhost:3000/api/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Generic Item",
+  "price": 9.99,
+  "stock": 100
+}
+
+###
+
+### POST /api/products — OOP (wymaga JWT)
+POST http://localhost:3001/api/products
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Laptop Pro",
+  "description": "High-performance laptop",
+  "price": 1299.99,
+  "stock": 50,
+  "categoryId": 1
+}
