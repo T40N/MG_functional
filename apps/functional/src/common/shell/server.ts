@@ -11,6 +11,8 @@ import { initializeDb, runMigrations } from './database';
 import { registerUserRoutes } from '@users/shell/routes/registerUser';
 import { registerLoginRoutes } from '@users/shell/routes/loginUser';
 import { authMiddleware } from './middleware/authMiddleware';
+import { registerGetCategoriesRoute } from '@categories/shell/routes/getCategories';
+import { registerCreateCategoryRoute } from '@categories/shell/routes/createCategory';
 
 const getMigrationsDir = (env: NodeJS.ProcessEnv): string =>
   env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), '../../database/migrations');
@@ -48,6 +50,10 @@ export const createApp = () => {
   // Register user routes
   registerUserRoutes(app);
   registerLoginRoutes(app);
+
+  // Register category routes
+  registerGetCategoriesRoute(app);
+  registerCreateCategoryRoute(app);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {

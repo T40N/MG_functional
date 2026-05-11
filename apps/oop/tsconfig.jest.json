@@ -4,7 +4,8 @@
     "baseUrl": ".",
     "paths": {
       "@common/*": ["src/common/*"],
-      "@users/*": ["src/users/*"]
+      "@users/*": ["src/users/*"],
+      "@categories/*": ["src/categories/*"]
     }
   }
 }

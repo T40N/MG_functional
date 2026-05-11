@@ -9,5 +9,6 @@ module.exports = {
   moduleNameMapper: {
     '^@common/(.*)$': '<rootDir>/src/common/$1',
     '^@users/(.*)$': '<rootDir>/src/users/$1',
+    '^@categories/(.*)$': '<rootDir>/src/categories/$1',
   },
 };

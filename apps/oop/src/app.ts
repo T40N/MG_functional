@@ -5,6 +5,9 @@ import jwt from 'jsonwebtoken';
 import { UserRepository } from './users/UserRepository';
 import { UserService } from './users/UserService';
 import { UserController } from './users/UserController';
+import { CategoryRepository } from './categories/CategoryRepository';
+import { CategoryService } from './categories/CategoryService';
+import { CategoryController } from './categories/CategoryController';
 import { authMiddleware } from './common/middleware/authMiddleware';
 import { ApiResponse } from './common/utils/ApiResponse';
 
@@ -31,7 +34,12 @@ export function buildApp(pool: Pool): express.Application {
   const userService = new UserService(userRepository, passwordService, tokenService);
   const userController = new UserController(userService);
 
+  const categoryRepository = new CategoryRepository(pool);
+  const categoryService = new CategoryService(categoryRepository);
+  const categoryController = new CategoryController(categoryService);
+
   app.use(userController.router);
+  app.use(categoryController.router);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
