@@ -45,3 +45,8 @@ coverage/
 # Misc
 .DS_Store
 Thumbs.db
+
+# Benchmark results (raw data, generated charts)
+benchmarks/results/*.json
+benchmarks/results/*.csv
+benchmarks/analysis/charts/*.png
