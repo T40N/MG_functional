@@ -19,10 +19,14 @@ import { OrderService } from './orders/OrderService';
 import { OrderController } from './orders/OrderController';
 import { authMiddleware } from './common/middleware/authMiddleware';
 import { ApiResponse } from './common/utils/ApiResponse';
+import { initDiagnosticsCollector } from './common/diagnostics/DiagnosticsCollector';
+import { DiagnosticsController } from './common/diagnostics/DiagnosticsController';
 
 export function buildApp(pool: Pool): express.Application {
   const app = express();
   app.use(express.json());
+
+  initDiagnosticsCollector();
 
   app.get('/', (_req: Request, res: Response) => {
     res.send('OOP app is running.');
@@ -64,6 +68,10 @@ export function buildApp(pool: Pool): express.Application {
   app.use(productController.router);
   app.use(cartController.router);
   app.use(orderController.router);
+
+  // Diagnostics — benchmark metrics (event loop lag, heap, GC)
+  const diagnosticsController = new DiagnosticsController();
+  app.use(diagnosticsController.router);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {

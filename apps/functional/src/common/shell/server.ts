@@ -25,6 +25,8 @@ import { registerAddToCartRoute } from '@cart/shell/routes/addToCart';
 import { registerUpdateCartItemRoute } from '@cart/shell/routes/updateCartItem';
 import { registerRemoveCartItemRoute } from '@cart/shell/routes/removeCartItem';
 import { registerClearCartRoute } from '@cart/shell/routes/clearCart';
+import { initDiagnosticsCollector } from './diagnostics/collector';
+import { registerDiagnosticsRoute } from './routes/diagnostics';
 
 const getMigrationsDir = (env: NodeJS.ProcessEnv): string =>
   env.MIGRATIONS_DIR ?? path.resolve(process.cwd(), '../../database/migrations');
@@ -39,6 +41,8 @@ export const initializeDatabase = (env: NodeJS.ProcessEnv): TE.TaskEither<Error,
 // Create Express application
 export const createApp = () => {
   const app = express();
+
+  initDiagnosticsCollector();
 
   // Middleware to parse JSON bodies (side effect)
   app.use(express.json());
@@ -84,6 +88,9 @@ export const createApp = () => {
   registerUpdateCartItemRoute(app);
   registerRemoveCartItemRoute(app);
   registerClearCartRoute(app);
+
+  // Diagnostics — benchmark metrics (event loop lag, heap, GC)
+  registerDiagnosticsRoute(app);
 
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
