@@ -10,6 +10,7 @@
     "test:oop": "npm run test -w apps/oop",
     "build:functional": "npm run build -w apps/functional",
     "build:oop": "npm run build -w apps/oop",
-    "lint": "npm run lint --workspaces --if-present"
+    "lint": "npm run lint --workspaces --if-present",
+    "bench:reset": "ts-node -P benchmarks/tsconfig.json benchmarks/seed/reset.ts"
   }
 }
