@@ -64,8 +64,11 @@ DIAG_RE = re.compile(r"^(s\d+)_([A-D])_(functional|oop)_diag_(func|oop)_(\d+)\.j
 # ─────────────────────────────────────────────────────────────────────────────
 
 
+_SETUP_TAGS = {"setup_login", "setup_cart"}
+
+
 def parse_k6(path: Path) -> dict:
-    """Parsuj k6 JSONL — zwróć zagregowane metryki HTTP."""
+    """Parse k6 JSONL output. Requests tagged setup_login / setup_cart are excluded."""
     durations, waiting, failed, req_times = [], [], [], []
     with open(path, encoding="utf-8") as f:
         for line in f:
@@ -79,13 +82,18 @@ def parse_k6(path: Path) -> dict:
             if rec.get("type") != "Point":
                 continue
             m, v = rec["metric"], rec["data"]["value"]
+            tags = rec["data"].get("tags", {})
+            is_setup = tags.get("type") in _SETUP_TAGS
             if m == "http_req_duration":
-                durations.append(v)
-                req_times.append(rec["data"]["time"])
+                if not is_setup:
+                    durations.append(v)
+                    req_times.append(rec["data"]["time"])
             elif m == "http_req_waiting":
-                waiting.append(v)
+                if not is_setup:
+                    waiting.append(v)
             elif m == "http_req_failed":
-                failed.append(v)
+                if not is_setup:
+                    failed.append(v)
 
     if not durations:
         return {}
