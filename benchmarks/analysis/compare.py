@@ -39,12 +39,12 @@ FUNC_COLOR = "#3b82f6"
 OOP_COLOR = "#ef4444"
 
 SCENARIO_LABELS = {
-    "s1": "S1 Rejestracja",
-    "s2": "S2 Logowanie",
-    "s3": "S3 Lista produktów",
-    "s4": "S4 Szczegóły produktu",
-    "s5": "S5 Dodanie do koszyka",
-    "s6": "S6 Złożenie zamówienia",
+    "s1": "S1 Registration",
+    "s2": "S2 Login",
+    "s3": "S3 Product List",
+    "s4": "S4 Product Detail",
+    "s5": "S5 Add to Cart",
+    "s6": "S6 Place Order",
 }
 PROFILE_LABELS = {
     "A": "Baseline (1 VU, 30s)",
@@ -323,7 +323,7 @@ def _overlay(ax, fdata, odata, key, ylabel, title, f_avg=None, o_avg=None):
     if o_avg is not None:
         ax.axhline(o_avg, color=OOP_COLOR, linestyle=":", alpha=0.6,
                    label=f"avg O {o_avg:.1f}")
-    ax.set_xlabel("Czas [s]")
+    ax.set_xlabel("Time [s]")
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=10)
     ax.legend(fontsize=8)
@@ -333,7 +333,7 @@ def _single_line(ax, ts_rel, vals, color, label, ylabel, title, avg=None):
     ax.plot(ts_rel, vals, color=color, linewidth=1.5, label=label, marker="o", markersize=3)
     if avg is not None:
         ax.axhline(avg, color=color, linestyle=":", alpha=0.6, label=f"avg {avg:.1f}")
-    ax.set_xlabel("Czas [s]")
+    ax.set_xlabel("Time [s]")
     ax.set_ylabel(ylabel)
     ax.set_title(title, fontsize=10)
     ax.legend(fontsize=8)
@@ -353,9 +353,9 @@ def _save(fig, path: Path):
 
 def plot_run(scenario, profile, prefix, fk, ok, fd, od, fdiag, odiag, out: Path):
     scen = SCENARIO_LABELS.get(scenario, scenario)
-    title = f"{scen} — Profil {PROFILE_LABELS.get(profile, profile)}"
+    title = f"{scen} — Profile {PROFILE_LABELS.get(profile, profile)}"
 
-    # ── Wykres 1: latencja + przepustowość ────────────────────────────────────
+    # ── Chart 1: latency + throughput ─────────────────────────────────────────
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 5))
     fig.suptitle(title, fontsize=13)
 
@@ -364,26 +364,26 @@ def plot_run(scenario, profile, prefix, fk, ok, fd, od, fdiag, odiag, out: Path)
         ["avg", "p50", "p95", "p99"],
         [fk.get(m, 0) for m in ["avg", "p50", "p95", "p99"]],
         [ok.get(m, 0) for m in ["avg", "p50", "p95", "p99"]],
-        "Czas [ms]",
-        "Latencja",
+        "Time [ms]",
+        "Latency",
     )
     _bar_group(
         ax2,
         ["req/s"],
         [fk.get("req_per_s", 0)],
         [ok.get("req_per_s", 0)],
-        "Żądania / s",
-        "Przepustowość",
+        "Requests / s",
+        "Throughput",
     )
     ax2.set_xticks([0])
     ax2.set_xticklabels([""])
 
     _save(fig, out / f"{prefix}_latency_throughput.png")
 
-    # ── Wykres 2: zasoby systemowe (docker stats) ─────────────────────────────
+    # ── Chart 2: system resources (docker stats) ──────────────────────────────
     if fd and od and fd.get("ts_rel") and od.get("ts_rel"):
         fig, axes = plt.subplots(2, 2, figsize=(13, 8))
-        fig.suptitle(f"Zasoby systemowe — {title}", fontsize=13)
+        fig.suptitle(f"System Resources — {title}", fontsize=13)
 
         _single_line(axes[0][0], fd["ts_rel"], fd["cpu"], FUNC_COLOR,
                      "Functional", "CPU [%]", "CPU — Functional", fd.get("cpu_avg"))
@@ -396,7 +396,7 @@ def plot_run(scenario, profile, prefix, fk, ok, fd, od, fdiag, odiag, out: Path)
 
         _save(fig, out / f"{prefix}_resources.png")
 
-    # ── Wykres 3: diagnostics (event loop, heap, GC) ──────────────────────────
+    # ── Chart 3: diagnostics (event loop, heap, GC) ───────────────────────────
     if fdiag and odiag and fdiag.get("ts_rel") and odiag.get("ts_rel"):
         fig, axes = plt.subplots(2, 3, figsize=(16, 9))
         fig.suptitle(f"Diagnostics — {title}", fontsize=13)
@@ -405,7 +405,7 @@ def plot_run(scenario, profile, prefix, fk, ok, fd, od, fdiag, odiag, out: Path)
             ("el_lag_mean", "ms",  "Event Loop lag (mean)",
              fdiag.get("el_lag_mean_avg"), odiag.get("el_lag_mean_avg")),
             ("el_lag_p99",  "ms",  "Event Loop lag (p99)",  None, None),
-            ("gc_pause",    "ms",  "GC pause total [kumulatywne]", None, None),
+            ("gc_pause",    "ms",  "GC pause total (cumulative)", None, None),
             ("heap_used",   "MB",  "Heap used",
              fdiag.get("heap_used_avg"), odiag.get("heap_used_avg")),
             ("heap_total",  "MB",  "Heap total",  None, None),
@@ -429,19 +429,19 @@ def plot_summary(summary: list, out: Path):
         return
     labels = [s["label"] for s in summary]
     fig, axes = plt.subplots(1, 2, figsize=(14, 6))
-    fig.suptitle("Podsumowanie — functional vs OOP", fontsize=14)
+    fig.suptitle("Summary — functional vs OOP", fontsize=14)
 
     _bar_group(
         axes[0], labels,
         [s["func_p95"] for s in summary],
         [s["oop_p95"] for s in summary],
-        "p95 [ms]", "Latencja p95",
+        "p95 [ms]", "p95 Latency",
     )
     _bar_group(
         axes[1], labels,
         [s["func_rps"] for s in summary],
         [s["oop_rps"] for s in summary],
-        "Żądania / s", "Przepustowość",
+        "Requests / s", "Throughput",
     )
 
     _save(fig, out / "summary.png")
@@ -499,7 +499,7 @@ def main():
 
         summary.append(
             {
-                "label": f"{SCENARIO_LABELS.get(scenario, scenario)}\n(Profil {profile})",
+                "label": f"{SCENARIO_LABELS.get(scenario, scenario)}\n(Profile {profile})",
                 "func_p95": fk.get("p95", 0),
                 "oop_p95": ok.get("p95", 0),
                 "func_rps": fk.get("req_per_s", 0),
