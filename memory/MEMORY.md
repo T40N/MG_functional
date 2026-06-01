@@ -20,13 +20,13 @@ See `memory/feedback_workflow.md`:
 - Commit after each phase/feature, no Co-Authored-By line
 - Add `.http` request block for every new endpoint
 
-## Aktualny plan prac
-Szczegóły w `memory/ecommerce-plan.md`:
-- ✅ Faza 0 — bugi naprawione (login zwraca token, usunięto client_number, martwy kod)
-- ✅ Faza 1 — JWT Middleware (functional + OOP)
-- ✅ OOP bootstrap — UserService, UserRepository, UserController, healthcheck route
-- ✅ Docker — oba kontenery healthy (functional:3000, OOP:3001), postgres:5432
-- **Następny: Faza 2 — Kategorie** (migration, GET /api/categories, POST /api/categories)
+## Aktualny stan (2026-06-01)
+Wszystkie fazy e-commerce + platforma benchmarkowa B1–B6 ukończone.
+- ✅ Fazy 0–5: API e-commerce (users, categories, products, cart, orders)
+- ✅ B1–B5: infrastruktura benchmark, diagnostics endpoint, seed 910k rekordów, k6 S1–S6, orkiestracja
+- ✅ B6: `benchmarks/analysis/compare.py` — parsuje k6 JSONL + docker stats CSV + diagnostics JSONL, generuje wykresy PNG
+- **Następny: uruchomić S1–S6 profil A/B (brakuje wyników), potem analiza Python**
+- Pierwsze wyniki S3/A: functional 157 req/s vs OOP 144 req/s (functional szybszy o 9.4%)
 
 ## Links to detail files
 - See CLAUDE.md for architecture overview and commands
