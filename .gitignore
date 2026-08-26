@@ -78,6 +78,10 @@ benchmarks/results/superseded_full_matrix/*.jsonl
 benchmarks/results/superseded_full_matrix/*.csv
 
 benchmarks/analysis/charts/*.png
+
+# Wyniki sond mechanizmu S3 — surowy material jak wyzej; wnioski i liczby
+# sa w benchmarks/probes/README.md, ktore zostaje w repozytorium.
+benchmarks/probes/out/
 # Python
 __pycache__/
 

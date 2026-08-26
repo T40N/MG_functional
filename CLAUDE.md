@@ -22,7 +22,7 @@ npm run test                # Run all tests (both apps)
 npm run build:functional
 npm run build:oop
 npm run lint                # Lint all workspaces
-docker compose up           # Start PostgreSQL + functional app (OOP commented out in docker-compose.yml)
+docker compose up           # Start PostgreSQL + both apps (functional on host port 3100, oop on 3001)
 ```
 
 ### From within apps/functional/ (or apps/oop/)

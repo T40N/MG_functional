@@ -324,6 +324,65 @@ Rozstrzygnięcie ma trzy stany, nie dwa:
 
 ---
 
+## 6c. Badanie mechanizmu anomalii S3
+
+Scenariusz S3 (`GET /api/products`) jest jedynym, w którym implementacja funkcyjna
+wypada istotnie **lepiej**, i to na wszystkich profilach obciążenia (−10,6% /
+−13,4% / −15,4% czasu żądania przy 20 / 100 / 200 VU). Wynik przeciwny do hipotez
+H2–H4 nie może zostać w pracy bez wyjaśnienia mechanizmu, a macierz główna go nie
+dostarcza: mierzy całą ścieżkę żądania naraz, więc nie rozdziela kosztu aplikacji
+od kosztu bazy danych.
+
+Do rozdzielenia warstw służy `benchmarks/probes/` — pomiary pomocnicze,
+**nie element macierzy pomiarowej**. Pełny opis eksperymentu, wszystkie liczby
+i ograniczenia: `benchmarks/probes/README.md`.
+
+### Trzy pomiary rozdzielające warstwy
+
+| Sonda | Co mierzy | Narzędzie |
+|---|---|---|
+| `run_probe.sh diag` | warstwę HTTP i kod aplikacji **bez udziału bazy** (`GET /api/diagnostics`, trasa niemal identyczna w obu implementacjach) | k6 |
+| `run_probe.sh list{1,20,50}` | realne zapytanie S3, z rozdzieleniem czasu aplikacji i czasu **w bazie** | k6 + `pg_stat_statements` |
+| `pg_curve.js` | przepustowość samego serwera bazy wobec liczby równoległych zapytań, **bez kodu aplikacji** | sterownik `pg` |
+
+Kluczowe jest źródło trzecie, którego nie ma w `run_single.sh`:
+**`pg_stat_statements`**. Zapytanie S3 jest w obu implementacjach identyczne co do
+znaku (sekcja 8.2 w dokumencie przekazania), więc obie trafiają w ten sam wpis
+licznika — a ponieważ obciążana jest zawsze tylko jedna aplikacja, licznik zerowany
+przed oknem pomiaru przypisuje czas jednoznacznie. Pozwala to policzyć z prawa
+Little'a średnią liczbę zapytań wykonywanych w bazie jednocześnie
+(`wywołania/s × średni czas zapytania`).
+
+### Ustalony mechanizm
+
+Anomalia S3 **nie jest przewagą paradygmatu**. Zapytanie S3 jest w całości
+procesorowe (bitmapowy odczyt ~5000 wierszy kategorii, sortowanie top-N, wszystko
+z `shared buffers`, zero wejścia-wyjścia), a kontener Postgresa ma limit 2 rdzeni.
+Krzywa przepustowości bazy ma kolano przy **N ≈ 3** równoległych zapytaniach
+i dalej **opada** — przy N = 10 baza obsługuje mniej zapytań na sekundę niż przy
+N = 2. Obie aplikacje pracują na opadającej gałęzi, implementacja obiektowa dalej
+w prawo (7,0 wobec 4,7 zajętych backendów), bo jej tańsza ścieżka na żądanie
+wypycha zapytania szybciej. Narzut implementacji funkcyjnej działa tu jako
+niezamierzone ograniczenie dopływu zapytań, a mniejsza równoległość oznacza
+w tym obszarze **większą** przepustowość.
+
+Narzut funkcyjny w S3 nie zniknął — jest tylko niewidoczny za wąskim gardłem.
+Ta sama sonda bez bazy danych pokazuje go wprost: **−22,4% przepustowości**
+i +28,9% czasu żądania po stronie funkcyjnej, czyli kierunek zgodny z H2–H4.
+
+Predykcja mechanizmu potwierdzona archiwalnymi danymi: poniżej kolana krzywej
+znak różnicy musi się odwrócić — i w profilu A (1 VU, równoległość bazy = 1)
+implementacja funkcyjna jest **wolniejsza** (+7,2% czasu żądania, −6,5%
+przepustowości).
+
+**Wniosek dla rozdziału 10:** znak różnicy między implementacjami jest funkcją
+tego, który element systemu jest wysycony, a nie samego paradygmatu. S3 nie jest
+kontrprzykładem wobec H2–H4, jest przykładem przesunięcia wąskiego gardła —
+i pokazuje granicę stosowalności całego pomiaru: mierzy koszt paradygmatu tylko
+tam, gdzie aplikacja jest wąskim gardłem.
+
+---
+
 ## 7. Struktura plików benchmarku
 
 ```
@@ -346,6 +405,11 @@ benchmarks/
   analysis/
     compare.py         ← skrypt Python do analizy i generowania wykresów
     charts/            ← wygenerowane wykresy (PNG)
+  probes/              ← pomiary pomocnicze: mechanizm anomalii S3 (sekcja 6c)
+    probe.js           ← sonda k6: warstwa aplikacji osobno od bazy
+    run_probe.sh       ← jedna konfiguracja sondy dla obu implementacji
+    pg_curve.js        ← krzywa przepustowości bazy wobec równoległości
+    README.md          ← opis eksperymentu, wyniki, wnioski
 ```
 
 ---
@@ -430,6 +494,12 @@ python3 benchmarks/analysis/compare.py
 - Benchmark na jednej maszynie — wyniki są powtarzalne względnie, nie absolutnie
 - Node.js jest jednowątkowy — CPU-bound operacje (bcrypt) mogą maskować różnice architektoniczne
 - JIT kompilacja V8 może faworyzować jeden wzorzec po rozgrzaniu — uwzględnić warmup
-- Współdzielona baza danych — przy dużym obciążeniu może stać się wąskim gardłem dla obu implementacji
+- Współdzielona baza danych — przy dużym obciążeniu może stać się wąskim gardłem dla obu
+  implementacji. **W S3 tak się stało** (sekcja 6c): powyżej ~3 równoległych zapytań
+  przepustowość Postgresa ograniczonego do 2 rdzeni opada, więc pomiar przestaje mierzyć
+  koszt paradygmatu, a zaczyna mierzyć, która implementacja mniej przeciąża bazę. Znak
+  różnicy odwraca się wtedy na korzyść implementacji **droższej** na żądanie. Pomiar mówi
+  o koszcie paradygmatu tylko tam, gdzie wąskim gardłem jest aplikacja — to ograniczenie
+  dotyczy każdego porównania architektur prowadzonego przez pełny stos aplikacyjny
 - Powtórzenia wykonywane sekwencyjnie na tej samej maszynie — nie eliminują dryfu warunków w czasie (temperatura CPU, procesy tła). SD międzyprzebiegowa mierzy skutek tego dryfu, ale go nie usuwa
 - Kryterium rozłączności przedziałów ufności jest bardziej konserwatywne niż test t-Studenta — przy małym n może nie wykryć różnic realnie istniejących, ale małych
