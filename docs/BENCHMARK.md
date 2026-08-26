@@ -66,6 +66,7 @@ services:
 | Metryka | Opis |
 |---------|------|
 | `http_req_duration` (avg, p50, p95, p99) | Czas odpowiedzi |
+| `http_req_duration` — **SD i CV** | **Odchylenie standardowe i współczynnik zmienności czasu żądania** (wymóg promotora) |
 | `http_reqs` (total, rate) | Przepustowość (req/s) |
 | `http_req_failed` | Procent błędów |
 | `http_req_waiting` | Czas TTFB (Time To First Byte) |
@@ -77,6 +78,15 @@ services:
 | CPU % | Zużycie procesora kontenera |
 | MEM usage / limit | Zużycie pamięci |
 | MEM % | Procent limitu |
+
+### Pamięć i odśmiecacz (`/api/diagnostics` — pomiar wewnątrz procesu Node)
+| Metryka | Opis |
+|---------|------|
+| `heapUsedMb`, `heapTotalMb`, `rssMb` | Zajętość sterty V8 i całkowity ślad procesu |
+| `gc.count`, `gc.totalPauseMs` | Liczba zdarzeń odśmiecania i suma pauz w oknie pomiarowym |
+| `eventLoop.lagMeanMs`, `lagP99Ms` | Opóźnienie pętli zdarzeń — skutek pauz GC widoczny dla klienta |
+
+To podstawa dowodowa **hipotezy H5**; sposób agregacji opisuje sekcja 6b.
 
 ---
 
@@ -177,6 +187,143 @@ Cel: znaleźć punkt, w którym jedna implementacja degraduje szybciej.
 
 ---
 
+## 6a. Powtórzenia pomiarów i odchylenie standardowe
+
+**Wymóg dodatkowy (ustalenie z promotorem, 2026-08-24):** badanie ma raportować
+**średni czas żądania wraz z odchyleniem standardowym**.
+
+### Dwa różne odchylenia standardowe
+
+Rozróżnienie jest istotne merytorycznie — zmieszanie tych dwóch wielkości jest
+najczęstszym błędem w raportowaniu benchmarków:
+
+| | Co opisuje | Skąd |
+|---|---|---|
+| **SD wewnątrzprzebiegowa** | rozrzut czasów pojedynczych żądań w obrębie jednego przebiegu — zmienność, jakiej doświadcza klient | wszystkie próbki `http_req_duration` z jednego pliku k6 |
+| **SD międzyprzebiegowa** | rozrzut średnich z niezależnych powtórzeń tego samego pomiaru — powtarzalność eksperymentu | średnie z N przebiegów tej samej pary (scenariusz, profil) |
+
+Tylko **SD międzyprzebiegowa** pozwala stwierdzić, czy różnica między
+implementacjami nie jest szumem pomiarowym. SD wewnątrzprzebiegowa opisuje
+charakterystykę systemu, nie jakość pomiaru.
+
+### Liczba powtórzeń
+
+Minimum **3 powtórzenia** na każdą parę (scenariusz, profil), zalecane 5.
+Uzasadnienie: Georges, Buytaert, Eeckhout (OOPSLA 2007, DOI 10.1145/1297027.1297033)
+oraz Kalibera, Jones (ISMM 2013, DOI 10.1145/2464157.2464160) — pojedynczy
+przebieg na maszynie z kompilacją JIT i odśmiecaniem pamięci nie uprawnia
+do wniosku o różnicy wydajności.
+
+Dodatkowo punkt 3.2c *Regulaminu prac dyplomowych WFiIS UŁ* wymaga od pracy
+magisterskiej wykazania się umiejętnością zastosowania metod naukowych — co
+w badaniu pomiarowym czyni powtórzenia wymogiem formalnym, nie tylko dobrą praktyką.
+
+### Kryterium istotności różnic
+
+Dla każdej pary implementacji wyznaczany jest **95% przedział ufności** średniej,
+na podstawie rozkładu t-Studenta (n < 30). Kryterium:
+
+- **przedziały rozłączne** → różnica istotna statystycznie na poziomie 0,05;
+- **przedziały nachodzące** → różnica **nierozstrzygnięta**.
+
+**Uwaga na sformułowanie.** Nachodzące przedziały to *brak dowodu różnicy*,
+a nie *dowód jej braku*. Przy n = 3 moc testu jest niska, więc różnica realna,
+ale mała, pozostanie niewykryta. Raporty nie mówią więc „różnica nieistotna
+statystycznie" (co sugerowałoby wniosek mocniejszy, niż dane pozwalają
+wyciągnąć), tylko „nierozstrzygnięta", z przypisem wyjaśniającym. Dotyczy to
+zarówno tabeli `POWTÓRZENIA`, jak i tabel H5 z sekcji 6b.
+
+Metoda rozłączności przedziałów ufności jest wprost zalecana przez Georges i in.
+Nie stosujemy testu t-Studenta na wartościach p, bo przy n = 3–5 przedziały
+ufności są czytelniejsze i trudniejsze do nadinterpretacji.
+
+### Uruchomienie
+
+```bash
+# 5 niezależnych powtórzeń jednego scenariusza i profilu
+REPEATS=5 ./benchmarks/run_single.sh s3 B
+
+# 3 powtórzenia całej macierzy (uwaga: ~10–12 h)
+REPEATS=3 ./benchmarks/run_all.sh
+
+# Analiza — sekcja "ANALIZA POWTÓRZEŃ" pojawia się automatycznie
+python3 benchmarks/analysis/compare.py
+```
+
+Każde powtórzenie otrzymuje własny znacznik czasu i własny reset bazy danych,
+więc `compare.py` traktuje je jako niezależne przebiegi i grupuje po parze
+(scenariusz, profil).
+
+### Artefakty analizy
+
+| Plik | Zawartość |
+|---|---|
+| `<scen>_<profil>_repeats.png` | średnia ± SD i ± 95% CI oraz rozrzut średnich poszczególnych przebiegów |
+| `summary_mean_sd.png` | zbiorczy średni czas żądania ± SD dla wszystkich pomiarów |
+| tabela `POWTÓRZENIA` w konsoli | n, średnia, SD międzyprzebiegowa, CV, granice CI, SD wewnątrzprzebiegowa, wniosek o istotności |
+
+---
+
+## 6b. Agregacja metryk hipotezy H5 (pamięć i odśmiecacz)
+
+**H5 jest hipotezą centralną pracy** — tytuł („wpływ czysto funkcyjnych struktur
+danych na efektywność") kieruje uwagę wprost na koszt zasobowy niemutowalności.
+Do 2026-08-26 sekcja „ANALIZA POWTÓRZEŃ" agregowała jednak wyłącznie czas
+żądania, przez co hipoteza centralna była jedyną, dla której nie liczono
+rozrzutu: raportowano pojedynczą liczbę z jednego przebiegu. Zostało to
+naprawione — metryki pamięciowo-odśmiecające przechodzą teraz **dokładnie tę samą
+procedurę statystyczną** co czas żądania (wspólna funkcja `aggregate_values()`).
+
+### Agregowane metryki
+
+| Metryka | Źródło | Znaczenie dla H5 |
+|---|---|---|
+| Sterta użyta — średnia i maksimum (MB) | `/api/diagnostics` (wewnątrz procesu) | bezpośrednia miara ciśnienia alokacyjnego |
+| RSS — średnia (MB) | `/api/diagnostics` | całkowity ślad pamięciowy procesu |
+| Zdarzenia GC (liczba) | `/api/diagnostics` | jak często odśmiecacz musi działać |
+| Suma pauz GC (ms) | `/api/diagnostics` | ile czasu procesor traci na odśmiecanie |
+| Opóźnienie pętli zdarzeń — średnia i p99 (ms) | `/api/diagnostics` | skutek pauz GC widoczny dla klienta |
+| CPU — średnia (%) | `docker stats` | koszt obliczeniowy poza pomiarem wewnętrznym |
+| Pamięć kontenera — średnia i maksimum (MiB) | `docker stats` | kontrola zewnętrzna wobec pomiaru V8 |
+
+Liczniki GC są kumulatywne od startu procesu, ale `run_single.sh` zeruje je
+(`POST /api/diagnostics/reset`) tuż po rozgrzewce, więc wartości obejmują
+wyłącznie okno pomiarowe.
+
+Wszystkie metryki H5 są typu **„mniej znaczy lepiej"**, więc dodatnia Δ oznacza
+większe zużycie po stronie funkcyjnej — czyli wynik **zgodny** z H5.
+
+### Metoda
+
+Identyczna jak dla czasu żądania (sekcja 6a): średnia z N powtórzeń,
+SD międzyprzebiegowa (`ddof=1`), CV, 95% przedział ufności z rozkładu
+t-Studenta, kryterium rozłączności przedziałów.
+
+Metryka, dla której brakuje kompletu próbek, jest **pomijana, a nie zerowana** —
+brak pomiaru nie jest pomiarem równym zeru. Serie diagnostyczne zbierane są
+niezależnie od plików k6, więc niekompletność jednego źródła nie psuje drugiego.
+
+### Sformułowanie wniosku
+
+Rozstrzygnięcie ma trzy stany, nie dwa:
+
+- **istotna (F>O)** / **istotna (F<O)** — przedziały ufności rozłączne;
+- **nierozstrzygnięte** — przedziały nachodzą. To **brak dowodu różnicy, a nie
+  dowód jej braku**; przy n = 3 moc testu jest niska, więc różnica realna,
+  ale mała, pozostanie niewykryta.
+
+### Artefakty analizy
+
+| Plik | Zawartość |
+|---|---|
+| tabela `H5 — PAMIĘĆ I ODŚMIECACZ` w konsoli | dla pary (scenariusz, profil): średnia ± SD, Δ%, rozstrzygnięcie dla 10 metryk |
+| tabela `H5 — ZESTAWIENIE ZBIORCZE` w konsoli | dla każdej metryki: ile z 24 kombinacji wypadło zgodnie z H5, przeciwnie, nierozstrzygnięcie |
+| `<scen>_<profil>_h5_repeats.png` | 6 paneli (sterta śr./maks, RSS, zdarzenia GC, pauzy GC, opóźnienie pętli p99) ze słupkami błędu SD i 95% CI |
+| `summary_h5_heap.png`, `summary_h5_gc_count.png`, `summary_h5_gc_pause.png` | zbiorcze porównanie wszystkich pomiarów |
+| `h5_aggregates.csv` | pełne liczby (n, średnia, SD, CV, granice CI, Δ%, flaga rozłączności) — materiał źródłowy dla tabel w rozdziale 10 |
+
+---
+
 ## 7. Struktura plików benchmarku
 
 ```
@@ -235,6 +382,8 @@ python3 benchmarks/analysis/compare.py
 | Metryka | Functional | OOP | Różnica |
 |---------|-----------|-----|---------|
 | avg latency (ms) | | | |
+| **SD latency (ms)** | | | |
+| **CV latency (%)** | | | |
 | p50 (ms) | | | |
 | p95 (ms) | | | |
 | p99 (ms) | | | |
@@ -242,6 +391,18 @@ python3 benchmarks/analysis/compare.py
 | error rate (%) | | | |
 | avg CPU % | | | |
 | avg MEM (MB) | | | |
+
+### Tabela powtórzeń (na każdą parę scenariusz × profil)
+| Metryka | Functional | OOP | Różnica |
+|---------|-----------|-----|---------|
+| liczba przebiegów (n) | | | |
+| średni czas żądania (ms) | | | |
+| SD międzyprzebiegowa (ms) | | | |
+| CV międzyprzebiegowe (%) | | | |
+| 95% CI dolna (ms) | | | |
+| 95% CI górna (ms) | | | |
+| SD wewnątrzprzebiegowa (ms) | | | |
+| wniosek o istotności | | | |
 
 ### Wykresy (generowane przez `compare.py`)
 1. Latencja p95 — wszystkie scenariusze, obie implementacje (grouped bar chart)
@@ -270,3 +431,5 @@ python3 benchmarks/analysis/compare.py
 - Node.js jest jednowątkowy — CPU-bound operacje (bcrypt) mogą maskować różnice architektoniczne
 - JIT kompilacja V8 może faworyzować jeden wzorzec po rozgrzaniu — uwzględnić warmup
 - Współdzielona baza danych — przy dużym obciążeniu może stać się wąskim gardłem dla obu implementacji
+- Powtórzenia wykonywane sekwencyjnie na tej samej maszynie — nie eliminują dryfu warunków w czasie (temperatura CPU, procesy tła). SD międzyprzebiegowa mierzy skutek tego dryfu, ale go nie usuwa
+- Kryterium rozłączności przedziałów ufności jest bardziej konserwatywne niż test t-Studenta — przy małym n może nie wykryć różnic realnie istniejących, ale małych
