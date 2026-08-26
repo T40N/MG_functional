@@ -46,7 +46,57 @@ coverage/
 .DS_Store
 Thumbs.db
 
-# Benchmark results (raw data, generated charts)
+# Benchmark results — surowe dane pomiarowe NIE trafiaja do repozytorium.
+# Pelna seria (6 scenariuszy x 4 profile x 3 powtorzenia) to ~295 GB samych
+# plikow .json z k6, bo `--out json` zapisuje kazda pojedyncza probke HTTP.
+# Recenzent odtwarza pomiar u siebie wg instrukcji w docs/BENCHMARK.md.
 benchmarks/results/*.json
+benchmarks/results/*.jsonl
 benchmarks/results/*.csv
+benchmarks/results/*.log
+benchmarks/results/.last_*_log
+
+# To samo dla pomiarow odrzuconych — wzorce wyzej nie schodza do podkatalogu.
+# README.md z uzasadnieniem odrzucenia zostaje w repozytorium celowo.
+benchmarks/results/discarded/*.json
+benchmarks/results/discarded/*.jsonl
+benchmarks/results/discarded/*.csv
+
+# ...oraz dla pomiarow z wczesniejszych sesji.
+benchmarks/results/archive_pre_2026-08-24/*.json
+benchmarks/results/archive_pre_2026-08-24/*.jsonl
+benchmarks/results/archive_pre_2026-08-24/*.csv
+
+# ...oraz dla S1/S2 zastapionych po wyrownaniu implementacji 2026-08-25.
+benchmarks/results/superseded_s1s2/*.json
+benchmarks/results/superseded_s1s2/*.jsonl
+benchmarks/results/superseded_s1s2/*.csv
+
+# ...oraz dla macierzy sprzed wyrownania warstwy HTTP.
+benchmarks/results/superseded_full_matrix/*.json
+benchmarks/results/superseded_full_matrix/*.jsonl
+benchmarks/results/superseded_full_matrix/*.csv
+
 benchmarks/analysis/charts/*.png
+# Python
+__pycache__/
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Pisemna czesc pracy magisterskiej — NIE trafia do repozytorium.
+# Repozytorium jest zalacznikiem z KODEM ZRODLOWYM (decyzja wg pkt 4.3
+# Regulaminu prac dyplomowych WFiIS UL); sam dokument pracy i material
+# roboczy do jego pisania sa oddawane osobno przez APD.
+# ─────────────────────────────────────────────────────────────────────────────
+
+# Tekst pracy i bibliografia (Markdown -> Pandoc -> Word)
+thesis/
+*.docx
+
+# Dokumenty robocze procesu pisania: stan prac, plan rozdzialow, plan bibliografii
+docs/STATUS.md
+docs/THESIS_OUTLINE.md
+docs/BIBLIOGRAFIA_PLAN.md
+
+# Odrzucony zrzut wynikow sprzed wyrownania implementacji — zastapiony przez
+# docs/benchmark_wyniki.txt, kontekst opisywal STATUS.md (juz poza repo).
+docs/benchmark_wyniki_PRZED_wyrownaniem.txt
