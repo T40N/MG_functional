@@ -8,7 +8,11 @@ export const saveUser = (pool: Pool, userToSave: TUserToSave) =>
   pipe(
     executeQueryWithPool<TDbUser>(
       pool,
-      `INSERT INTO users (email, name, surname, password)
+      // Kolejność kolumn celowo identyczna z apps/oop/src/users/UserRepository.ts.
+      // Semantycznie obojętna, ale rozdziały 5 i 6 zestawiają odpowiadające
+      // sobie fragmenty kodu obok siebie — każda widoczna różnica niewynikająca
+      // z paradygmatu osłabia tezę o kontrolowanym porównaniu.
+      `INSERT INTO users (name, surname, email, password)
        VALUES ($1, $2, $3, $4)
        RETURNING id,
                  name,
@@ -17,9 +21,9 @@ export const saveUser = (pool: Pool, userToSave: TUserToSave) =>
                  password,
                  created_at as "createdAt"`,
       [
-        userToSave.email,
         userToSave.name,
         userToSave.surname,
+        userToSave.email,
         userToSave.password,
       ],
     ),

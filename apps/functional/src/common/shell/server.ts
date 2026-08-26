@@ -45,8 +45,14 @@ export const createApp = () => {
   initDiagnosticsCollector();
 
   // Middleware to parse JSON bodies (side effect)
+  //
+  // Stos middleware musi być identyczny z apps/oop/src/app.ts. Wcześniej był tu
+  // dodatkowo express.urlencoded({extended: true}) — warstwa wykonywana przy
+  // każdym żądaniu, nieobecna w implementacji obiektowej i nieużywana przez
+  // żaden z 16 endpointów (kontrakt przyjmuje wyłącznie ciała JSON).
+  // Doliczała pracę wyłącznie stronie funkcyjnej, czyli w kierunku zgodnym
+  // z hipotezami H2–H4 — usunięta 2026-08-25 przed ponownym pomiarem.
   app.use(express.json());
-  app.use(express.urlencoded({ extended: true }));
 
   // Define routes (side effect)
   app.get('/', (req: Request, res: Response) => {
@@ -55,12 +61,6 @@ export const createApp = () => {
       (msg) => formatMessage(msg)(O.none),
     );
     res.send(message);
-  });
-
-  // Add a route to test database connection
-  app.get('/db-test', (req: Request, res: Response) => {
-    // This is just a placeholder - in a real app, you would use the pool to query the database
-    res.send({ message: 'Database connection is configured' });
   });
 
   // Register user routes
@@ -95,28 +95,6 @@ export const createApp = () => {
   // Protected test route — verifies JWT middleware works
   app.get('/api/me', authMiddleware, (req: Request, res: Response) => {
     res.json(createResponse('success', {userId: req.userId}, 'Authenticated'));
-  });
-
-  // Example route that demonstrates database query execution
-  app.get('/db-query', (req: Request, res: Response) => {
-    /*
-    pipe(
-      executeQueryWithPool(pool, 'SELECT NOW() as current_time'),
-      TE.fold(
-        (error) => {
-          res.status(500).json({ error: error.message });
-          return TE.right(undefined);
-        },
-        (result) => {
-          res.json({ result });
-          return TE.right(undefined);
-        }
-      )
-    )();
-    */
-
-    // For now, just return a message
-    res.send({ message: 'This route would execute a database query in a real application' });
   });
 
   return app;

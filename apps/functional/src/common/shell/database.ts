@@ -58,19 +58,30 @@ export const executeQuery = <T>(
       (reason) => new Error(`Query execution failed: ${reason}`),
     );
 
+/**
+ * Wykonuje zapytanie na kliencie z puli, ZAWSZE zwracajac klienta do puli.
+ *
+ * Wczesniej zwolnienie bylo realizowane przez `TE.chainFirst(() =>
+ * releaseClient(client))`. `chainFirst` jest aliasem `tap` i uruchamia swoja
+ * funkcje WYLACZNIE dla `Right` — kazdy blad SQL (a `executeQuery` opakowuje
+ * blad w `Left`) trwale wypychal klienta z puli. Po dziesieciu bledach pula
+ * o domyslnym rozmiarze 10 przestawala odpowiadac. Strona obiektowa uzywa
+ * `pool.query()`, ktore zwalnia klienta na obu sciezkach, wiec byl to defekt
+ * asymetryczny, obciazajacy wylacznie implementacje funkcyjna.
+ *
+ * `TE.bracket` gwarantuje wykonanie kroku zwalniajacego niezaleznie od wyniku —
+ * jest to funkcyjny odpowiednik `try/finally`, wiec poprawka nie osłabia
+ * czystosci stylu, ktory praca mierzy.
+ */
 export const executeQueryWithPool = <T>(
   pool: Pool,
   query: string,
   params: unknown[] = [],
 ): TE.TaskEither<Error, T[]> =>
-    pipe(
+    TE.bracket(
       connectToDb(pool),
-      TE.chain(client =>
-        pipe(
-          executeQuery<T>(client, query, params),
-          TE.chainFirst(() => releaseClient(client)),
-        ),
-      ),
+      (client) => executeQuery<T>(client, query, params),
+      (client) => releaseClient(client),
     );
 
 // Release a client back to the pool

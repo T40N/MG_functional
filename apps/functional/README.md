@@ -56,8 +56,6 @@ This will run Jest tests with TypeScript support that verify the server is worki
 ## API Endpoints
 
 - `GET /`: Returns a "Hello World" message indicating that the Express.js server is running.
-- `GET /db-test`: Returns a message indicating that the database connection is configured.
-- `GET /db-query`: Example endpoint demonstrating how to execute a database query in a functional style.
 
 ## Linting
 

@@ -22,8 +22,32 @@ export const initDiagnosticsCollector = (): void => {
   }
 };
 
+/**
+ * Zeruje liczniki, zeby snapshot obejmowal WYLACZNIE okno pomiaru.
+ *
+ * Bez tego `gcCount`, `gcTotalMs` i histogram opoznienia petli zdarzen sa
+ * kumulatywne od startu procesu, a `compare.py` raportowalo prace odsmiecacza
+ * z calego zycia kontenera zamiast z mierzonego przebiegu. Przy roznym wieku
+ * procesow obu aplikacji (zdarzalo sie 6 h wobec 24 h) czynilo to metryki
+ * pamieciowe — czyli podstawe hipotezy H5 — bezwartosciowymi.
+ *
+ * Wywolywane przez run_single.sh po fazie rozgrzewki, tuz przed pomiarem.
+ */
+export const resetDiagnostics = (): void => {
+  gcCount = 0;
+  gcTotalMs = 0;
+  if (eldHistogram) {
+    eldHistogram.reset();
+  }
+};
+
 const toMb   = (bytes: number): number => Math.round(bytes / 1024 / 1024 * 100) / 100;
-const nsToMs = (ns: number): number    => Math.round(ns / 1e6 * 1000) / 1000;
+// Bezposrednio po eldHistogram.reset() histogram nie ma jeszcze zadnej probki,
+// wiec .mean/.percentile/.max zwracaja NaN, ktore JSON.stringify zamienia na null.
+// compare.py traktuje te pola jako liczby, wiec null wpadalby do agregacji jako
+// wartosc nieokreslona. Zwracamy 0 do czasu pojawienia sie pierwszej probki
+// (histogram probkuje co 10 ms, wiec okno jest pomijalne wobec okna pomiaru).
+const nsToMs = (ns: number): number => (Number.isFinite(ns) ? Math.round(ns / 1e6 * 1000) / 1000 : 0);
 
 export type DiagnosticsSnapshot = {
   eventLoop: { lagMeanMs: number; lagP99Ms: number; lagMaxMs: number };
