@@ -26,8 +26,11 @@ export default function () {
   const categoryId = ((__VU + __ITER) % 20) + 1;
   const page       = (__ITER % 50) + 1;
 
+  // Tag `name` grupuje 1000 kombinacji (kategoria x strona) w jedna serie
+  // czasowa — patrz komentarz w s4_product_detail.js.
   const res = http.get(
     `${BASE_URL}/api/products?category_id=${categoryId}&page=${page}&limit=20`,
+    { tags: { name: '/api/products?category_id&page' } },
   );
 
   const ok = check(res, {

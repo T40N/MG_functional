@@ -8,6 +8,7 @@
  *   npm run bench:reset
  *
  * What it does:
+ *   0. Verifies it is connected to the benchmark database (refuses otherwise)
  *   1. Deletes all cart_items
  *   2. Deletes orders placed by non-seed users (S6 test runs)
  *   3. Deletes users registered during S1 test runs
@@ -34,32 +35,105 @@ function loadEnv(envPath: string): void {
 // Load .env when running locally (skipped in Docker where env is injected)
 loadEnv(path.resolve(process.cwd(), 'apps/functional/.env'));
 
-const pool = new Pool({
+const DB_CONFIG = {
   host:     process.env.DB_HOST     ?? 'localhost',
-  port:     parseInt(process.env.DB_PORT ?? '5432', 10),
+  // 55432 to port hosta benchmarkowego PostgreSQL (patrz docker-compose.yml).
+  // Port 5432 na hoście może należeć do zupełnie innego projektu — a ten skrypt
+  // wykonuje DELETE, więc domyślna wartość NIE MOŻE wskazywać na 5432.
+  port:     parseInt(process.env.DB_PORT ?? '55432', 10),
   database: process.env.DB_NAME     ?? 'postgres',
   user:     process.env.DB_USER     ?? 'postgres',
   password: process.env.DB_PASSWORD ?? 'postgres',
-});
+};
+
+const pool = new Pool(DB_CONFIG);
+
+/**
+ * Liczba zamowien tworzonych przez migracje 009_seed_benchmark_data.sql
+ * (20 zamowien x 10 000 uzytkownikow seedowych). Zamowienia maja kolejne
+ * identyfikatory od 1, wiec granica id sluzy do odroznienia stanu seedowego
+ * od osadu pozostawionego przez przebiegi S6.
+ *
+ * Zmiana w migracji 009 WYMAGA aktualizacji tej stalej.
+ */
+const SEED_ORDER_COUNT = 200_000;
+
+/**
+ * Tabele, które musi zawierać baza benchmarku.
+ * Lista odzwierciedla rzeczywisty schemat z database/migrations/ — koszyk nie ma
+ * osobnej encji `carts`, pozycje koszyka wiążą się bezpośrednio z użytkownikiem.
+ */
+const REQUIRED_TABLES = [
+  'users', 'categories', 'products', 'cart_items', 'orders', 'order_items',
+];
+
+/**
+ * Zabezpieczenie przed czyszczeniem niewłaściwej bazy.
+ *
+ * Skrypt wykonuje DELETE na users/orders/cart_items. Jeśli DB_HOST/DB_PORT/DB_NAME
+ * wskażą przypadkiem inną instancję PostgreSQL (co jest realne, gdy na maszynie
+ * działa kilka projektów), operacja nie może się rozpocząć. Wymagamy obecności
+ * pełnego schematu benchmarku — inaczej odmawiamy i wychodzimy z błędem.
+ */
+async function assertBenchmarkDatabase(): Promise<void> {
+  const target = `${DB_CONFIG.host}:${DB_CONFIG.port}/${DB_CONFIG.database}`;
+  console.log(`  target: ${target}`);
+
+  const { rows } = await pool.query<{ table_name: string }>(
+    `SELECT table_name
+       FROM information_schema.tables
+      WHERE table_schema = 'public'
+        AND table_name = ANY($1::text[])`,
+    [REQUIRED_TABLES],
+  );
+
+  const found = new Set(rows.map((r) => r.table_name));
+  const missing = REQUIRED_TABLES.filter((t) => !found.has(t));
+
+  if (missing.length > 0) {
+    throw new Error(
+      `odmowa czyszczenia — to nie wygląda na bazę benchmarku.\n` +
+      `  Połączenie:       ${target}\n` +
+      `  Brakujące tabele: ${missing.join(', ')}\n` +
+      `  Skrypt wykonuje DELETE na users/orders/cart_items i nie zgadnie, czy trafił\n` +
+      `  we właściwą instancję. Sprawdź DB_HOST / DB_PORT / DB_NAME oraz to, czy\n` +
+      `  środowisko benchmarku jest uruchomione (docker compose up -d).`,
+    );
+  }
+}
 
 async function reset(): Promise<void> {
   const start = Date.now();
   console.log('Resetting benchmark state...\n');
 
-  // 1. Clear all cart items (transient, left by S5 runs)
-  const { rowCount: cartRows } = await pool.query('DELETE FROM cart_items');
-  console.log(`  cart_items cleared:        ${cartRows ?? 0}`);
+  await assertBenchmarkDatabase();
 
-  // 2. Remove orders placed by non-seed users (bench user + S6 test runs)
-  //    Seed orders (from migration 009) are kept for realistic data volume.
-  const { rowCount: orderRows } = await pool.query(`
-    DELETE FROM orders
-    WHERE user_id NOT IN (
-      SELECT id FROM users
-      WHERE email LIKE 'seed_%@test.com'
-         OR email = 'bench@test.com'
-    )
-  `);
+  // 1. Clear all cart items (transient, left by S5 runs)
+  //    TRUNCATE zamiast DELETE: DELETE zostawia martwe krotki i rozdete strony
+  //    indeksowe, wiec tabela o zerowej liczbie wierszy potrafila zajmowac
+  //    kilkanascie megabajtow i spowalniac podzapytanie o dostepny stan
+  //    magazynowy. TRUNCATE zwalnia strony natychmiast i daje identyczny
+  //    punkt startowy dla obu implementacji.
+  await pool.query('TRUNCATE TABLE cart_items RESTART IDENTITY');
+  console.log('  cart_items:                TRUNCATE (strony zwolnione)');
+
+  // 2. Remove orders created by benchmark runs.
+  //
+  //    UWAGA — poprzedni predykat byl blędny i sprzeczny z wlasnym komentarzem:
+  //    usuwal zamowienia uzytkownikow NIE-seedowych, podczas gdy s6_place_order.js
+  //    sklada zamowienia wlasnie JAKO uzytkownicy seedowi ("Each VU uses its own
+  //    seed user for cart isolation"). Zamowienia benchmarkowe nigdy nie byly
+  //    wiec czyszczone: tabela urosla z 200 tys. do 7,8 mln wierszy, a poniewaz
+  //    run_single.sh mierzyl zawsze functional przed OOP, kazda faza OOP
+  //    pracowala na tabeli powiekszonej o swiezy przebieg konkurenta.
+  //
+  //    Migracja 009 tworzy DOKLADNIE SEED_ORDER_COUNT zamowien o kolejnych
+  //    identyfikatorach, wiec wszystko powyzej tej granicy jest osadem
+  //    benchmarkowym. order_items znikaja kaskada (ON DELETE CASCADE).
+  const { rowCount: orderRows } = await pool.query(
+    'DELETE FROM orders WHERE id > $1',
+    [SEED_ORDER_COUNT],
+  );
   console.log(`  test-run orders removed:   ${orderRows ?? 0}`);
 
   // 3. Remove users registered during S1 runs (k6 pattern: user_N_M@test.com)

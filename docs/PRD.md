@@ -163,8 +163,23 @@ class UserController {
 
 ## 4. Schemat bazy danych (współdzielony)
 
+> **Zaktualizowano 2026-08-25.** Pierwotna wersja tej sekcji pochodziła
+> z fazy 0 (commit `6936e58`, 2026-05-05) i opisywała projekt sprzed
+> zmian wprowadzonych w fazie 4. Poniższe definicje odtwarzają **rzeczywisty
+> stan** z `database/migrations/`, zweryfikowany względem działającej bazy.
+> Wykaz różnic wobec pierwotnego projektu zamyka tę sekcję.
+
+Obie aplikacje korzystają z **tej samej instancji PostgreSQL** i **tych samych
+migracji** w `database/migrations/`, uruchamianych alfabetycznie przy starcie.
+Schemat jest więc identyczny dla obu implementacji z definicji, nie z ustaleń —
+co stanowi jeden z warunków równoważności porównania.
+
+**Sześć tabel domenowych:** `users`, `categories`, `products`, `cart_items`,
+`orders`, `order_items`. Siódma tabela widoczna w bazie, `migrations`, jest
+techniczna — rejestruje zastosowane migracje.
+
 ```sql
--- users
+-- users (001_create_users_table.sql)
 CREATE TABLE IF NOT EXISTS users (
   id         SERIAL PRIMARY KEY,
   email      TEXT NOT NULL UNIQUE,
@@ -174,58 +189,107 @@ CREATE TABLE IF NOT EXISTS users (
   created_at TIMESTAMP DEFAULT now()
 );
 
--- categories
+-- categories (004_create_categories.sql)
 CREATE TABLE IF NOT EXISTS categories (
-  id         SERIAL PRIMARY KEY,
-  name       TEXT NOT NULL UNIQUE,
-  created_at TIMESTAMP DEFAULT now()
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(100) NOT NULL UNIQUE,
+  description TEXT,
+  created_at  TIMESTAMP DEFAULT now()
 );
 
--- products
+-- products (005_create_products.sql)
 CREATE TABLE IF NOT EXISTS products (
-  id             SERIAL PRIMARY KEY,
-  name           TEXT NOT NULL,
-  description    TEXT,
-  price          NUMERIC(10,2) NOT NULL,
-  stock_quantity INTEGER NOT NULL DEFAULT 0,
-  category_id    INTEGER REFERENCES categories(id),
-  created_at     TIMESTAMP DEFAULT now()
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(200) NOT NULL,
+  description TEXT,
+  price       NUMERIC(10,2) NOT NULL,
+  stock       INTEGER NOT NULL DEFAULT 0,
+  category_id INTEGER REFERENCES categories(id) ON DELETE SET NULL,
+  created_at  TIMESTAMP DEFAULT now()
 );
 
--- carts (1:1 z user)
-CREATE TABLE IF NOT EXISTS carts (
-  id         SERIAL PRIMARY KEY,
-  user_id    INTEGER REFERENCES users(id) UNIQUE,
-  created_at TIMESTAMP DEFAULT now()
-);
-
--- cart_items
+-- cart_items (006_create_cart_items.sql)
+-- Brak osobnej encji `carts` — pozycje koszyka wiążą się z użytkownikiem
+-- bezpośrednio. Rezerwacja stanu magazynowego wygasa po 15 minutach;
+-- dodanie lub zmiana pozycji odnawia okno rezerwacji.
 CREATE TABLE IF NOT EXISTS cart_items (
-  id         SERIAL PRIMARY KEY,
-  cart_id    INTEGER REFERENCES carts(id) ON DELETE CASCADE,
-  product_id INTEGER REFERENCES products(id),
-  quantity   INTEGER NOT NULL DEFAULT 1,
-  UNIQUE(cart_id, product_id)
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  product_id  INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+  quantity    INTEGER NOT NULL CHECK (quantity > 0),
+  reserved_at TIMESTAMP NOT NULL DEFAULT now(),
+  expires_at  TIMESTAMP NOT NULL DEFAULT now() + INTERVAL '15 minutes',
+  UNIQUE(user_id, product_id)
 );
 
--- orders
+-- orders (007_create_orders.sql)
 CREATE TABLE IF NOT EXISTS orders (
-  id           SERIAL PRIMARY KEY,
-  user_id      INTEGER REFERENCES users(id),
-  status       TEXT NOT NULL DEFAULT 'pending', -- pending|confirmed|shipped|delivered|cancelled
-  total_amount NUMERIC(10,2) NOT NULL,
-  created_at   TIMESTAMP DEFAULT now()
+  id          SERIAL PRIMARY KEY,
+  user_id     INTEGER NOT NULL REFERENCES users(id),
+  status      VARCHAR(20) NOT NULL DEFAULT 'pending'
+              CHECK (status IN ('pending', 'cancelled')),
+  total_price NUMERIC(10,2) NOT NULL,
+  created_at  TIMESTAMP DEFAULT now()
 );
 
--- order_items
+-- order_items (007_create_orders.sql)
 CREATE TABLE IF NOT EXISTS order_items (
   id                SERIAL PRIMARY KEY,
-  order_id          INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-  product_id        INTEGER REFERENCES products(id),
+  order_id          INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  product_id        INTEGER REFERENCES products(id) ON DELETE SET NULL,
   quantity          INTEGER NOT NULL,
   price_at_purchase NUMERIC(10,2) NOT NULL
 );
 ```
+
+### 4.1 Dostępny stan magazynowy
+
+Stan dostępny dla danego użytkownika nie równa się `products.stock` — jest
+pomniejszony o aktywne rezerwacje **innych** użytkowników:
+
+```sql
+p.stock - COALESCE(
+  (SELECT SUM(ci.quantity)
+     FROM cart_items ci
+    WHERE ci.product_id = p.id
+      AND ci.expires_at > NOW()
+      AND ci.user_id != $2),
+  0
+) AS "availableStock"
+```
+
+Zapytanie to występuje **identycznie co do znaku** w obu implementacjach
+(`apps/functional/src/cart/shell/db/getAvailableStock.ts` oraz
+`apps/oop/src/cart/CartRepository.ts`).
+
+### 4.2 Różnice wobec pierwotnego projektu z fazy 0
+
+Zmiany wprowadzono w fazie 4 (commit `f749c3f`, 2026-05-11, „Cart with stock
+reservation system"). Wprowadzenie rezerwacji czasowej uczyniło pośrednią
+encję `carts` zbędną: skoro pozycja koszyka nosi własny znacznik wygaśnięcia,
+a unikalność zapewnia `UNIQUE(user_id, product_id)`, dodatkowa tabela
+dokładałaby złączenie przy każdym odczycie koszyka bez żadnej korzyści.
+
+| Pierwotny projekt (faza 0) | Stan rzeczywisty | Charakter zmiany |
+|---|---|---|
+| tabela `carts` (1:1 z użytkownikiem) | **nie istnieje** | usunięta jako zbędna |
+| `cart_items.cart_id → carts(id)` | `cart_items.user_id → users(id)` | jedno złączenie mniej na odczyt |
+| `UNIQUE(cart_id, product_id)` | `UNIQUE(user_id, product_id)` | konsekwencja powyższej |
+| brak rezerwacji | `reserved_at`, `expires_at` (15 min) | nowy mechanizm |
+| `quantity INTEGER DEFAULT 1` | `quantity NOT NULL CHECK (quantity > 0)` | wzmocnione ograniczenie |
+| `products.stock_quantity` | `products.stock` | zmiana nazwy |
+| `products.name TEXT` | `VARCHAR(200)` | doprecyzowanie typu |
+| `categories` bez `description` | `description TEXT` | dodana kolumna |
+| `categories.name TEXT` | `VARCHAR(100)` | doprecyzowanie typu |
+| `orders.total_amount` | `orders.total_price` | zmiana nazwy |
+| `status`: 5 stanów w komentarzu | `CHECK IN ('pending','cancelled')` | **zawężone do 2 stanów** |
+| `orders.user_id` bez `NOT NULL` | `NOT NULL` | wzmocnione ograniczenie |
+| brak `ON DELETE` na kluczach obcych | `SET NULL` / `CASCADE` | doprecyzowanie |
+
+**Uwaga do rozdziału 4 pracy:** zawężenie statusów zamówienia do `pending`
+i `cancelled` jest istotne przy opisie zakresu funkcjonalnego — pierwotnie
+planowany cykl życia zamówienia (`confirmed`, `shipped`, `delivered`) nie
+został zaimplementowany, ponieważ nie wnosiłby nic do pomiaru wydajności.
 
 ---
 

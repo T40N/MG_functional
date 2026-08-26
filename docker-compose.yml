@@ -3,13 +3,21 @@ services:
     image: postgres:15
     container_name: my_postgres
     ports:
-      - "5432:5432"
+      # Port hosta przemapowany z 5432 -> 55432, żeby nie kolidować z innymi
+      # instancjami PostgreSQL działającymi na maszynie. Wewnątrz sieci compose
+      # aplikacje łączą się nadal przez postgres:5432 (DB_HOST=postgres w .env).
+      - "55432:5432"
     env_file:
       - ./apps/functional/.env
     environment:
-      POSTGRES_DB: ${DB_NAME}
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      # UWAGA: Compose interpoluje ${...} ze środowiska powłoki i z pliku .env
+      # w katalogu głównym projektu — NIE z `env_file` powyżej. Bez wartości
+      # domyślnych Postgres odmawia inicjalizacji świeżego wolumenu
+      # ("superuser password is not specified"). Wartości domyślne muszą
+      # odpowiadać DB_* w apps/*/.env, inaczej aplikacje się nie połączą.
+      POSTGRES_DB: ${DB_NAME:-postgres}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
     volumes:
       - pgdata:/var/lib/postgresql/data
     command: >
@@ -32,13 +40,17 @@ services:
     image: node:18
     container_name: mg_functional
     working_dir: /app
-    command: bash -c "npm install && npm run dev:docker"
+    command: >
+      bash -c "npm install --no-audit --no-fund &&
+               npm run build &&
+               node dist/index.js"
     volumes:
       - ./apps/functional:/app
       - /app/node_modules
       - ./database:/database
     ports:
-      - "${PORT:-3000}:${PORT:-3000}"
+      # Port hosta 3100 -> 3000 w kontenerze (3000 bywa zajęty przez inne projekty)
+      - "3100:${PORT:-3000}"
     env_file:
       - ./apps/functional/.env
     environment:
@@ -57,13 +69,16 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 30s
+      start_period: 120s
 
   app-oop:
     image: node:18
     container_name: mg_oop
     working_dir: /app
-    command: bash -c "npm install && npm run dev:docker"
+    command: >
+      bash -c "npm install --no-audit --no-fund &&
+               npm run build &&
+               node dist/index.js"
     volumes:
       - ./apps/oop:/app
       - /app/node_modules
@@ -88,7 +103,7 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
-      start_period: 30s
+      start_period: 120s
 
 volumes:
   pgdata:

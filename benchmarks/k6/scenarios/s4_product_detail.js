@@ -28,7 +28,15 @@ export default function () {
   // full coverage before repeating
   const productId = ((__VU * 7919 + __ITER * 1009) % PRODUCT_COUNT) + 1;
 
-  const res = http.get(`${BASE_URL}/api/products/${productId}`);
+  // Tag `name` grupuje wszystkie warianty URL-a w JEDNA serie czasowa.
+  // Bez niego k6 traktuje kazdy z 100 000 identyfikatorow jako osobna metryke:
+  // przy profilu D dawalo to ponad 800 tys. serii czasowych, ostrzezenie
+  // "high-cardinality values", pliki wynikowe rzedu 20 GB na przebieg
+  // i realne obciazenie samego generatora, ktory konkuruje o zasoby
+  // z mierzonymi aplikacjami.
+  const res = http.get(`${BASE_URL}/api/products/${productId}`, {
+    tags: { name: '/api/products/:id' },
+  });
 
   const ok = check(res, {
     'status 200':   (r) => r.status === 200,
