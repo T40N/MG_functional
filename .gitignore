@@ -82,6 +82,12 @@ benchmarks/analysis/charts/*.png
 # Wyniki sond mechanizmu S3 — surowy material jak wyzej; wnioski i liczby
 # sa w benchmarks/probes/README.md, ktore zostaje w repozytorium.
 benchmarks/probes/out/
+
+# Dane surowe metryk statycznych (B7). Wyjatkowo NIE dlatego, ze sa duze — sa
+# w calosci odtwarzalne z kodu jednym `npm run metrics:static` w kilka sekund.
+# Tabele wynikowe zostaja w docs/metryki_statyczne.txt.
+benchmarks/static/out/
+
 # Python
 __pycache__/
 

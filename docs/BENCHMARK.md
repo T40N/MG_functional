@@ -383,6 +383,56 @@ tam, gdzie aplikacja jest wąskim gardłem.
 
 ---
 
+## 6d. Metryki statyczne kodu (zadanie B7)
+
+Oś uzupełniająca wobec pomiarów wydajnościowych: porównanie **kodu źródłowego**
+obu implementacji, materiał dla rozdziału 7 pracy (porównanie jakościowe).
+Pomiar nie uruchamia aplikacji — jest deterministyczny i zależy wyłącznie od
+zawartości `apps/`, więc plik wynikowy zapisuje w nagłówku commit ostatniej zmiany
+w `apps/` (nie `HEAD`). Pełny opis metody, mapowanie warstw i ograniczenia miary:
+`benchmarks/static/README.md`.
+
+### Mierzone wielkości
+
+| Grupa | Miary | Narzędzie |
+|---|---|---|
+| rozmiar | liczba plików, linie fizyczne, SLOC (bez pustych i komentarzy), SLOC na punkt końcowy API | własny licznik w `collect.js` |
+| złożoność | złożoność cyklomatyczna każdej funkcji: suma, średnia, mediana, maksimum, rozkład | ESLint 8, reguła `complexity` z progiem 0 |
+| zagnieżdżenie | głębokość bloków sterowania | ESLint 8, reguła `max-depth` z progiem 0 |
+
+Próg `0` w obu regułach sprawia, że każda funkcja i każdy blok łamie regułę,
+a komunikat naruszenia niesie zmierzoną wartość — ESLint nie ma trybu
+raportowania metryk.
+
+Każdy plik jest przypisany do jednej z siedmiu **warstw porównawczych** wspólnych
+dla obu implementacji (np. funkcyjne `shell/db` odpowiada obiektowemu
+`*Repository.ts`). Bez tego mapowania liczby nie są porównywalne, bo katalogi
+nazywają się inaczej. Plik bez przypisania jest zgłaszany jako ostrzeżenie.
+
+### Wynik (kod z commitu `5fed312`, pomiar 2026-08-29)
+
+Implementacja funkcyjna: **+77,2% SLOC** (1977 wobec 1116) i 3,3× więcej plików,
+przy **niższej złożoności pojedynczej funkcji** (średnia CC 1,45 wobec 1,93;
+udział funkcji o CC > 4: 2,3% wobec 13,0%). Złożoność nie znika — rozkłada się
+na 258 jednostek wobec 123, więc jej suma dla całej aplikacji jest wyższa
+(374 wobec 238). Obie implementacje wystawiają **dokładnie 20 punktów końcowych
+API**, co jest niezależnym potwierdzeniem równoważności funkcjonalnej mierzonym
+na kodzie.
+
+**Ograniczenie miary, które musi paść w rozdziale 7:** złożoność cyklomatyczna
+liczy rozgałęzienia obecne w składni języka. Kod fp-ts przenosi je do kombinatorów
+(`chain`, `fold`, `orElse`), które dla parsera są zwykłymi wywołaniami funkcji.
+Miara **systematycznie zaniża** złożoność implementacji funkcyjnej i nie wolno
+czytać jej jako „kod funkcyjny jest prostszy".
+
+### Uruchomienie
+
+```bash
+npm run metrics:static      # -> docs/metryki_statyczne.txt + out/static_metrics.json
+```
+
+---
+
 ## 7. Struktura plików benchmarku
 
 ```
@@ -410,6 +460,11 @@ benchmarks/
     run_probe.sh       ← jedna konfiguracja sondy dla obu implementacji
     pg_curve.js        ← krzywa przepustowości bazy wobec równoległości
     README.md          ← opis eksperymentu, wyniki, wnioski
+  static/              ← metryki statyczne kodu, zadanie B7 (sekcja 6d)
+    collect.js         ← licznik SLOC + ESLint jako źródło CC i zagnieżdżeń
+    run_static.sh      ← zapis wyniku do docs/metryki_statyczne.txt
+    out/               ← static_metrics.json: dane surowe per plik i per funkcja
+    README.md          ← metoda, mapowanie warstw, ograniczenia miary
 ```
 
 ---

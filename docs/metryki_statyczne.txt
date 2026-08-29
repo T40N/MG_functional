@@ -1,0 +1,175 @@
+# Metryki statyczne kodu — functional vs OOP (zadanie B7)
+# Wygenerowane: 2026-08-29 09:31:24
+# Mierzony kod: 5fed312 z 2026-08-26
+# Narzedzia: wlasny licznik SLOC + ESLint 8 (reguly complexity, max-depth)
+# Metoda i ograniczenia miary: benchmarks/static/README.md
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  PODSUMOWANIE — kod produkcyjny (bez testów)                         │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  pliki .ts                              103             31  +232.3%  │
+│  w tym pliki .d.ts                       34              0           │
+│  linie fizyczne                        2349           1318   +78.2%  │
+│  SLOC (kod)                            1977           1116   +77.2%  │
+│  linie komentarza                       107             22  +386.4%  │
+│  linie puste                            265            180   +47.2%  │
+│  śr. SLOC / plik                       19.2           36.0   -46.7%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  funkcje (jednostki CC)                 258            123  +109.8%  │
+│  suma CC                                374            238   +57.1%  │
+│  śr. CC / funkcję                      1.45           1.93   -25.1%  │
+│  mediana CC                             1.0            1.0    +0.0%  │
+│  max CC                                   7              7    +0.0%  │
+│  funkcje o CC > 10                        0              0           │
+│  CC na 100 SLOC                       18.92          21.33   -11.3%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  punkty końcowe API                      20             20    +0.0%  │
+│  w warstwie HTTP                         16             16    +0.0%  │
+│  SLOC HTTP / punkt końcowy             40.0           20.1   +98.8%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  max głębokość bloków                     3              3    +0.0%  │
+│  bloki na głębokości ≥ 2                  9             19   -52.6%  │
+│  bloki na głębokości ≥ 3                  1              1    +0.0%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  SLOC (kod) według warstwy porównawczej                              │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Warstwa HTTP                           640            322   +98.8%  │
+│  Logika domenowa                        198            120   +65.0%  │
+│  Dostęp do danych                       456            338   +34.9%  │
+│  Walidacja                               51             35   +45.7%  │
+│  Typy i model                           243             79  +207.6%  │
+│  Infrastruktura                         256            133   +92.5%  │
+│  Bootstrap i serwer                     133             89   +49.4%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  RAZEM (bez testów)                    1977           1116   +77.2%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Liczba plików według warstwy porównawczej                           │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Warstwa HTTP                            17              5  +240.0%  │
+│  Logika domenowa                         15              5  +200.0%  │
+│  Dostęp do danych                        18              5  +260.0%  │
+│  Walidacja                                5              4   +25.0%  │
+│  Typy i model                            38              5  +660.0%  │
+│  Infrastruktura                           8              5   +60.0%  │
+│  Bootstrap i serwer                       2              2    +0.0%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  RAZEM (bez testów)                     103             31  +232.3%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Suma złożoności cyklomatycznej według warstwy                       │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Warstwa HTTP                           150            102   +47.1%  │
+│  Logika domenowa                         55             29   +89.7%  │
+│  Dostęp do danych                        79             57   +38.6%  │
+│  Walidacja                                1              1    +0.0%  │
+│  Typy i model                             0              0           │
+│  Infrastruktura                          65             36   +80.6%  │
+│  Bootstrap i serwer                      24             13   +84.6%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  RAZEM (bez testów)                     374            238   +57.1%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Średnie CC funkcji według warstwy                                   │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Warstwa HTTP                          1.53           2.43   -37.0%  │
+│  Logika domenowa                       1.17           1.38   -15.3%  │
+│  Dostęp do danych                      1.80           1.84    -2.4%  │
+│  Walidacja                             1.00           1.00    +0.0%  │
+│  Typy i model                             —              —           │
+│  Infrastruktura                        1.41           2.00   -29.3%  │
+│  Bootstrap i serwer                    1.09           1.30   -16.1%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  RAZEM (bez testów)                    1.45           1.93   -25.1%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Maksymalne CC funkcji według warstwy                                │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  Warstwa HTTP                             5              7   -28.6%  │
+│  Logika domenowa                          3              3    +0.0%  │
+│  Dostęp do danych                         7              6   +16.7%  │
+│  Walidacja                                1              1    +0.0%  │
+│  Typy i model                             —              —           │
+│  Infrastruktura                           7              6   +16.7%  │
+│  Bootstrap i serwer                       2              2    +0.0%  │
+├──────────────────────────────────────────────────────────────────────┤
+│  RAZEM (bez testów)                       7              7    +0.0%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Rozkład złożoności cyklomatycznej (kod produkcyjny)                 │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  funkcje o CC = 1                       193             77  +150.6%  │
+│  funkcje o CC 2–4                        59             30   +96.7%  │
+│  funkcje o CC 5–10                        6             16   -62.5%  │
+│  funkcje o CC > 10                        0              0           │
+├──────────────────────────────────────────────────────────────────────┤
+│  udział CC = 1 (%)                     74.8           62.6   +19.5%  │
+│  udział CC > 4 (%)                      2.3           13.0   -82.1%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+
+┌──────────────────────────────────────────────────────────────────────┐
+│  Kod testowy                                                         │
+├──────────────────────────────────────────────────────────────────────┤
+│  Metryka                         Functional            OOP        Δ  │
+├──────────────────────────────────────────────────────────────────────┤
+│  pliki testów                            17             12   +41.7%  │
+│  SLOC testów                           1224           1070   +14.4%  │
+│  śr. SLOC / plik testu                 72.0           89.2   -19.3%  │
+│  SLOC testów / SLOC kodu               0.62           0.96   -35.4%  │
+│  funkcje w testach                      208            195    +6.7%  │
+└──────────────────────────────────────────────────────────────────────┘
+
+► Dziesięć najbardziej złożonych funkcji — Functional (suma CC = 374)
+    1. CC  7  src/common/shell/database.ts:18  Arrow function
+    2. CC  7  src/orders/shell/db/placeOrderInDb.ts:7  Async arrow function
+    3. CC  6  src/products/shell/db/getProducts.ts:6  Arrow function
+    4. CC  5  src/common/shell/middleware/authMiddleware.ts:5  Arrow function
+    5. CC  5  src/orders/shell/db/cancelOrderInDb.ts:7  Async arrow function
+    6. CC  5  src/products/shell/routes/getProducts.ts:9  Async arrow function
+    7. CC  4  src/cart/shell/routes/updateCartItem.ts:12  Async arrow function
+    8. CC  4  src/categories/shell/routes/createCategory.ts:37  Arrow function
+    9. CC  4  src/common/shell/diagnostics/collector.ts:59  Arrow function
+   10. CC  4  src/users/shell/routes/loginUser.ts:12  Async arrow function
+
+► Dziesięć najbardziej złożonych funkcji — OOP (suma CC = 238)
+    1. CC  7  src/cart/CartController.ts:51  Async method 'updateItem'
+    2. CC  6  src/cart/CartController.ts:28  Async method 'addItem'
+    3. CC  6  src/common/database/Database.ts:5  Function 'createPool'
+    4. CC  6  src/orders/OrderController.ts:63  Async method 'cancelOrder'
+    5. CC  6  src/orders/OrderRepository.ts:7  Async method 'placeOrder'
+    6. CC  6  src/products/ProductController.ts:17  Async method 'getAll'
+    7. CC  6  src/products/ProductRepository.ts:7  Async method 'findAll'
+    8. CC  5  src/categories/CategoryController.ts:25  Async method 'create'
+    9. CC  5  src/common/middleware/authMiddleware.ts:5  Arrow function
+   10. CC  5  src/orders/OrderController.ts:16  Async method 'placeOrder'
+
+Dane surowe: benchmarks/static/out/static_metrics.json
