@@ -134,7 +134,7 @@ const url = `${BASE_URL}/api/products?page=1&limit=20`;
 
 ## 6. Profile obciążenia
 
-Każdy scenariusz uruchamiany z trzema profilami:
+Każdy scenariusz uruchamiany jest z czterema profilami (A–D):
 
 ### Profil A — Baseline
 ```javascript
@@ -433,6 +433,52 @@ npm run metrics:static      # -> docs/metryki_statyczne.txt + out/static_metrics
 
 ---
 
+## 6e. Normalizacja metryk H5 do jednostki pracy
+
+Sekcja 6b agreguje metryki hipotezy H5 w **oknie pomiaru**: liczba zdarzeń
+odśmiecania i suma pauz GC dotyczą całego przebiegu. Obie implementacje
+obsługują jednak w tym samym oknie różną liczbę żądań — w S4/D implementacja
+obiektowa o ~35% więcej. Porównanie liczników okna miesza więc dwa zjawiska:
+koszt alokacyjny **pojedynczego żądania** (przedmiot H5) i **liczbę żądań**
+(skutek różnicy wydajności). Przy identycznej pracy na żądanie implementacja
+szybsza wypadnie „gorzej", bo tej pracy wykona po prostu więcej.
+
+Skutek jest w danych wyraźny: w liczbach okna implementacja funkcyjna ma w S4
+(profile B–D) **mniej** zdarzeń GC (−4,9…−8,3%) i **krótsze** pauzy
+(−9,2…−16,0%), i to istotnie — co odczytane wprost przeczyłoby H5. Po podzieleniu
+przez liczbę żądań znak odwraca się na przeciwny.
+
+### Metoda
+
+Każdy licznik dzielony jest przez liczbę żądań tego samego przebiegu i mnożony
+przez 1000. Dalej **identycznie jak w sekcji 6a**: średnia z n powtórzeń,
+SD międzyprzebiegowa (ddof=1), 95% CI z rozkładu t-Studenta, kryterium
+rozłączności przedziałów.
+
+Źródłem jest `docs/benchmark_wyniki.txt` (tabele pojedynczych przebiegów:
+`GC count`, `GC pause total (ms)`, `total requests`), więc do odtworzenia
+**nie jest potrzebny surowy materiał** z `benchmarks/results/` (357 GB).
+
+### Wynik (seria 2026-08-25/26, n=3)
+
+| Wskaźnik | zgodne z H5 | przeciwne | nierozstrzygnięte |
+|---|---|---|---|
+| zdarzenia GC na 1000 żądań | **14** | 4 (wszystkie S2) | 6 |
+| pauzy GC (ms) na 1000 żądań | **12** | 0 | 12 |
+
+Dla porównania, te same wskaźniki liczone w oknie pomiaru (sekcja 6b) dawały
+10 / 7 / 7 oraz 5 / 3 / 16. Wszystkie istotne rozstrzygnięcia w S3–S6 mają znak
+zgodny z H5; jedyne wyniki przeciwne pochodzą z S2 (mechanizm niewyjaśniony —
+prawdopodobnie dobór rozmiaru młodej generacji przez V8, patrz rozdz. 10.6 pracy).
+
+### Uruchomienie
+
+```bash
+python3 benchmarks/analysis/h5_per_request.py > docs/metryki_h5_na_zadanie.txt
+```
+
+---
+
 ## 7. Struktura plików benchmarku
 
 ```
@@ -454,11 +500,13 @@ benchmarks/
     <scenariusz>_<profil>_oop_<timestamp>.json
   analysis/
     compare.py         ← skrypt Python do analizy i generowania wykresów
-    charts/            ← wygenerowane wykresy (PNG)
+    h5_per_request.py  ← normalizacja metryk H5 na 1000 żądań (sekcja 6e)
+    charts/            ← wygenerowane wykresy (PNG) + h5_aggregates.csv
   probes/              ← pomiary pomocnicze: mechanizm anomalii S3 (sekcja 6c)
     probe.js           ← sonda k6: warstwa aplikacji osobno od bazy
     run_probe.sh       ← jedna konfiguracja sondy dla obu implementacji
     pg_curve.js        ← krzywa przepustowości bazy wobec równoległości
+    plot_pg_curve.py   ← wykres krzywej (rysunek do rozdz. 10.3 pracy)
     README.md          ← opis eksperymentu, wyniki, wnioski
   static/              ← metryki statyczne kodu, zadanie B7 (sekcja 6d)
     collect.js         ← licznik SLOC + ESLint jako źródło CC i zagnieżdżeń
