@@ -1,17 +1,18 @@
 #!/usr/bin/env bash
-# run_analysis.sh — compare.py na pelnej serii z 2026-08-24/25.
+# run_analysis.sh — compare.py na calym materiale z benchmarks/results/.
 #
 # `python3 -u` wylacza buforowanie, zeby tee dostawal wyniki na biezaco,
-# a nie dopiero na koncu wielogodzinnego parsowania ~295 GB.
+# a nie dopiero na koncu wielogodzinnego parsowania (pelna seria to ~300 GB).
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-OUT="$ROOT_DIR/docs/benchmark_wyniki.txt"
+OUT_DIR="$ROOT_DIR/benchmarks/reports"
+OUT="$OUT_DIR/benchmark_wyniki.txt"
+mkdir -p "$OUT_DIR"
 
 {
   echo "# Wyniki benchmarku functional vs OOP"
-  echo "# Seria: 2026-08-24 18:29 — 2026-08-25 09:02"
-  echo "# 6 scenariuszy x 4 profile x 3 powtorzenia = 72 pary functional+OOP"
+  echo "# Material: benchmarks/results/ (6 scenariuszy x 4 profile x N powtorzen)"
   echo "# Analiza uruchomiona: $(date '+%Y-%m-%d %H:%M:%S')"
   echo
 } > "$OUT"

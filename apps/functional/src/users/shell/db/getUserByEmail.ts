@@ -13,7 +13,7 @@ export const getUserByEmail = (pool: Pool, email: string) =>
       // celowo identyczny z apps/oop/src/users/UserRepository.ts, żeby obie
       // implementacje wykonywały dokładnie ten sam plan zapytania. Różnica
       // wynosiła ~5 µs na żądanie i była jedyną asymetrią SQL między
-      // aplikacjami (patrz docs/STATUS.md, sekcja o wyrównaniu S1/S2).
+      // aplikacjami; wyrównana przed ponownym pomiarem S1/S2 (2026-08-25).
       `SELECT id,
               name,
               surname,

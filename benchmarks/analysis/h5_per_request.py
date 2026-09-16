@@ -18,14 +18,17 @@ t-Studenta, kryterium rozłączności przedziałów.
 
 ŹRÓDŁO DANYCH
 -------------
-`docs/benchmark_wyniki.txt` — wynik `compare.py` z serii pomiarowej
-2026-08-25/26. Skrypt czyta tabele pojedynczych przebiegów (wiersze
-"GC count", "GC pause total (ms)", "total requests"), więc do odtworzenia
-NIE jest potrzebny surowy materiał z benchmarks/results/ (357 GB).
+`benchmarks/reports/benchmark_wyniki.txt` — wynik `compare.py` zapisany przez
+`benchmarks/run_analysis.sh`. Skrypt czyta tabele pojedynczych przebiegów
+(wiersze "GC count", "GC pause total (ms)", "total requests"), więc sam nie
+dotyka surowego materiału z benchmarks/results/ (~300 GB) — wymaga jednak,
+by analiza główna była już uruchomiona.
 
 URUCHOMIENIE
 ------------
-    python3 benchmarks/analysis/h5_per_request.py > docs/metryki_h5_na_zadanie.txt
+    ./benchmarks/run_analysis.sh          # najpierw — tworzy plik źródłowy
+    python3 benchmarks/analysis/h5_per_request.py \
+        > benchmarks/reports/metryki_h5_na_zadanie.txt
 """
 
 import re
@@ -34,7 +37,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
-SRC = Path(__file__).resolve().parents[2] / "docs" / "benchmark_wyniki.txt"
+SRC = Path(__file__).resolve().parents[1] / "reports" / "benchmark_wyniki.txt"
 
 # Wartość krytyczna rozkładu t-Studenta, dwustronna, 95%, df = n-1.
 # Tablica jak w compare.py — bez zależności od SciPy.

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# run_static.sh — B7: metryki statyczne obu implementacji do docs/metryki_statyczne.txt.
+# run_static.sh — B7: metryki statyczne obu implementacji
+# do benchmarks/reports/metryki_statyczne.txt.
 #
 # Pomiar jest deterministyczny (czyta kod, nie uruchamia aplikacji), wiec mozna go
 # powtorzyc w dowolnym momencie. Wynik zalezy WYLACZNIE od zawartosci apps/, dlatego
@@ -9,7 +10,9 @@
 set -uo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-OUT="$ROOT_DIR/docs/metryki_statyczne.txt"
+OUT_DIR="$ROOT_DIR/benchmarks/reports"
+OUT="$OUT_DIR/metryki_statyczne.txt"
+mkdir -p "$OUT_DIR"
 
 {
   echo "# Metryki statyczne kodu — functional vs OOP (zadanie B7)"

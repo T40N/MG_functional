@@ -6,7 +6,7 @@ zagnieżdżeń. Materiał dla **rozdziału 7 pracy (porównanie jakościowe)**, 
 uzupełniająca wobec pomiarów wydajnościowych z macierzy głównej.
 
 Pomiar jest deterministyczny — zależy wyłącznie od zawartości `apps/`, więc
-nagłówek `docs/metryki_statyczne.txt` zapisuje commit **ostatniej zmiany w `apps/`**,
+nagłówek `benchmarks/reports/metryki_statyczne.txt` zapisuje commit **ostatniej zmiany w `apps/`**,
 a nie `HEAD`. Dzięki temu commit dodający sam pomiar nie unieważnia zapisanej
 metryczki, a liczby da się odtworzyć przez `git checkout <hash> -- apps`.
 Pomiar wykonany 2026-08-29 na kodzie z commitu `5fed312` (2026-08-26) — tego
@@ -189,12 +189,12 @@ przygotowania klas. Materiał do podrozdziału 7.3.
 ## Odtworzenie
 
 ```bash
-npm run metrics:static           # zapisuje docs/metryki_statyczne.txt
+npm run metrics:static           # zapisuje benchmarks/reports/metryki_statyczne.txt
 node benchmarks/static/collect.js  # to samo, tylko na stdout
 ```
 
 Artefakty:
 
-- `docs/metryki_statyczne.txt` — tabele w formacie zgodnym z `compare.py`
+- `benchmarks/reports/metryki_statyczne.txt` — tabele w formacie zgodnym z `compare.py`
 - `benchmarks/static/out/static_metrics.json` — dane surowe: każdy plik z jego
   warstwą, licznikami linii i listą funkcji wraz z CC i numerem wiersza
